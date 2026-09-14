@@ -194,7 +194,7 @@ pwsh bin/Debug/net10.0/playwright.ps1 install chromium
 If the browser isn't installed, or no preview URL resolver is registered, rendering fails soft and
 the audit falls back to inline-style-only fragments (and the five rendered-only rules simply find
 nothing to evaluate) — existing hosts see zero behavior change unless they explicitly opt in. See
-[`src/OptiA11y.Rendering/README.md`](src/OptiA11y.Rendering/README.md) for the full design
+[`src/OptiA11y.Rendering/README.md`](https://github.com/adayinthelifeofapro/OptiA11y/blob/master/src/OptiA11y.Rendering/README.md) for the full design
 rationale and known limitations (best-effort text correlation, per-request browser latency,
 host-supplied preview URL resolution, and the target-size/motion exceptions the underlying success
 criteria carve out that this slice cannot fully verify).

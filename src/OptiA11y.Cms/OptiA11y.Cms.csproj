@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <Version>0.3.0</Version>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,10 @@
   <ItemGroup>
     <PackageReference Include="EPiServer.Cms.Core" Version="[13.1.0, 14.0.0)" />
     <PackageReference Include="EPiServer.Shell" Version="[13.1.0, 14.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
