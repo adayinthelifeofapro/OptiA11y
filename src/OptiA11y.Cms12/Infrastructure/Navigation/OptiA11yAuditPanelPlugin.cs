@@ -20,9 +20,11 @@ namespace OptiA11y.Cms12.Infrastructure.Navigation;
 [RelativeUrlIFrameComponent(
     Url = OptiA11yAuditPanelPlugin.PanelUrl,
     PlugInAreas = "/episerver/cms/assets/defaultgroup",
-    Categories = "cms",
+    Categories = "content",
     Title = "Accessibility audit",
-    SortOrder = 100)]
+    SortOrder = 100,
+    MinHeight = 400,
+    MaxHeight = 1200)]
 public sealed class OptiA11yAuditPanelPlugin
 {
     public const string PanelUrl = "/optia11y/audit/panel";

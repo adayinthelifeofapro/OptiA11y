@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework></TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <NuGetAudit>false</NuGetAudit>
     <Title>OptiA11y for Optimizely CMS 12</Title>
