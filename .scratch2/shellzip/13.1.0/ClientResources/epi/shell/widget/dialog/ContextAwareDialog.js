@@ -1,2 +1,0 @@
-//>>built
-define("epi/shell/widget/dialog/ContextAwareDialog",["dojo/_base/declare","epi/shell/_ContextMixin","epi/shell/widget/dialog/Dialog"],function(_1,_2,_3){return _1([_3,_2],{contextChanged:function(){this.hide();this.destroy();}});});

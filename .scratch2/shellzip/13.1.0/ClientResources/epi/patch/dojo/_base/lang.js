@@ -1,2 +1,0 @@
-//>>built
-define("epi/patch/dojo/_base/lang",["dojo/_base/lang"],function(_1){_1.clone=function(_2){if(!_2||typeof _2!="object"||_1.isFunction(_2)){return _2;}if(_2.nodeType&&"cloneNode" in _2){return _2.cloneNode(true);}if(_2 instanceof Date){return new Date(_2.getTime());}if(_2 instanceof RegExp){return new RegExp(_2);}var r,i,l;if(_1.isArray(_2)){r=[];for(i=0,l=_2.length;i<l;++i){if(i in _2){r.push(_1.clone(_2[i]));}}}else{r=typeof _2.constructor==="function"?new _2.constructor():{};}return _1._mixin(r,_2,_1.clone);};});
