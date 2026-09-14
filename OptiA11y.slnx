@@ -11,6 +11,7 @@
     <Project Path="tests/OptiA11y.Rendering.Tests/OptiA11y.Rendering.Tests.csproj" />
   </Folder>
   <Project Path="src/OptiA11y.Cms/OptiA11y.Cms.csproj" />
+  <Project Path="src/OptiA11y.Cms12/OptiA11y.Cms12.csproj" />
   <Project Path="src/OptiA11y.Core/OptiA11y.Core.csproj" />
   <Project Path="src/OptiA11y.Saas/OptiA11y.Saas.csproj" />
 </Solution>

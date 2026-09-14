@@ -1,0 +1,418 @@
+@using OptiA11y.Core.Model
+@model OptiA11y.Cms12.Features.RunAudit.RunAuditResult
+@{
+    ViewData["Title"] = "OptiA11y — Audit Results";
+
+    static string SeverityClass(Severity severity) => severity switch
+    {
+        Severity.Critical => "optia11y-badge optia11y-badge--critical",
+        Severity.Major => "optia11y-badge optia11y-badge--serious",
+        Severity.Minor => "optia11y-badge optia11y-badge--moderate",
+        _ => "optia11y-badge optia11y-badge--minor",
+    };
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"]</title>
+    <style>
+        :root {
+            color-scheme: light;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #1c1c1e;
+            background: #ffffff;
+            padding: 16px 20px 32px;
+        }
+
+        h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 12px;
+            color: #1c1c1e;
+        }
+
+        h2 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .02em;
+            margin: 24px 0 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e1e1e3;
+            color: #47474d;
+        }
+
+        .optia11y-disclaimer {
+            background: #f4f6fb;
+            border: 1px solid #dbe2f0;
+            border-left: 3px solid #4870d9;
+            border-radius: 2px;
+            padding: 10px 12px;
+            margin: 0 0 12px;
+            color: #33363d;
+            font-size: 12px;
+        }
+
+        .optia11y-content-ref {
+            font-size: 12px;
+            color: #6e6e73;
+            margin: 0 0 8px;
+        }
+
+        .optia11y-content-ref code {
+            background: #f1f1f3;
+            border-radius: 2px;
+            padding: 1px 5px;
+            font-size: 11px;
+        }
+
+        .optia11y-empty {
+            color: #47474d;
+            background: #f4f6fb;
+            border: 1px solid #dbe2f0;
+            border-radius: 2px;
+            padding: 10px 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 0 8px;
+            font-size: 12px;
+        }
+
+        th {
+            text-align: left;
+            font-weight: 600;
+            color: #47474d;
+            background: #fafafb;
+            border-bottom: 1px solid #e1e1e3;
+            padding: 6px 8px;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #edeeef;
+            vertical-align: top;
+        }
+
+        tbody tr:hover {
+            background: #f7f8fc;
+        }
+
+        td a {
+            color: #2b57d0;
+            text-decoration: none;
+        }
+
+        td a:hover {
+            text-decoration: underline;
+        }
+
+        .optia11y-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.6;
+        }
+
+        .optia11y-badge--critical {
+            background: #fbe2e1;
+            color: #a4262c;
+        }
+
+        .optia11y-badge--serious {
+            background: #fdedd7;
+            color: #a35a00;
+        }
+
+        .optia11y-badge--moderate {
+            background: #fdf3cc;
+            color: #7a6100;
+        }
+
+        .optia11y-badge--minor {
+            background: #e6eaf7;
+            color: #2b3d8f;
+        }
+
+        .optia11y-review {
+            color: #a35a00;
+            cursor: help;
+            border-bottom: 1px dotted #a35a00;
+        }
+
+        .optia11y-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 16px;
+            padding: 10px 12px;
+            background: #fafafb;
+            border: 1px solid #e1e1e3;
+            border-radius: 4px;
+        }
+
+        .optia11y-toolbar label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #47474d;
+            text-transform: uppercase;
+            letter-spacing: .02em;
+            margin-right: 4px;
+        }
+
+        .optia11y-toolbar select,
+        .optia11y-toolbar input[type="search"] {
+            font-family: inherit;
+            font-size: 12px;
+            padding: 4px 6px;
+            border: 1px solid #d0d0d5;
+            border-radius: 3px;
+            background: #ffffff;
+            color: #1c1c1e;
+        }
+
+        .optia11y-toolbar input[type="search"] {
+            min-width: 200px;
+        }
+
+        .optia11y-toolbar .optia11y-count {
+            margin-left: auto;
+            font-size: 12px;
+            color: #6e6e73;
+        }
+
+        th.optia11y-sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th.optia11y-sortable:hover {
+            color: #1c1c1e;
+        }
+
+        th.optia11y-sortable::after {
+            content: "\2195";
+            margin-left: 4px;
+            color: #b0b0b5;
+            font-size: 10px;
+        }
+
+        th.optia11y-sortable[data-sort-dir="asc"]::after {
+            content: "\2191";
+            color: #2b57d0;
+        }
+
+        th.optia11y-sortable[data-sort-dir="desc"]::after {
+            content: "\2193";
+            color: #2b57d0;
+        }
+
+        tr.optia11y-hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Accessibility audit</h1>
+
+    <p class="optia11y-disclaimer">
+        This is editorial accessibility assistance, not a compliance certification. A clean result
+        here is not a legal position — it means OptiA11y found no issues it was able to detect.
+    </p>
+
+    <p class="optia11y-content-ref">Content reference: <code>@Model.ContentReference</code></p>
+
+    @if (Model.Findings.Count == 0)
+    {
+        <p class="optia11y-empty">No findings for this content.</p>
+    }
+    else
+    {
+        var orderedFindings = Model.Findings
+            .OrderByDescending(f => f.Severity)
+            .ToList();
+        var severities = orderedFindings.Select(f => f.Severity).Distinct().OrderByDescending(s => s);
+        var confidences = orderedFindings.Select(f => f.Confidence).Distinct().OrderBy(c => c.ToString());
+        var ruleIds = orderedFindings.Select(f => f.RuleId).Distinct().OrderBy(r => r, StringComparer.Ordinal);
+
+        <div class="optia11y-toolbar" id="optia11y-toolbar">
+            <label for="optia11y-filter-severity">Severity</label>
+            <select id="optia11y-filter-severity">
+                <option value="">All</option>
+                @foreach (var severity in severities)
+                {
+                    <option value="@severity">@severity</option>
+                }
+            </select>
+
+            <label for="optia11y-filter-confidence">Confidence</label>
+            <select id="optia11y-filter-confidence">
+                <option value="">All</option>
+                @foreach (var confidence in confidences)
+                {
+                    <option value="@confidence">@confidence</option>
+                }
+            </select>
+
+            <label for="optia11y-filter-rule">Rule</label>
+            <select id="optia11y-filter-rule">
+                <option value="">All</option>
+                @foreach (var ruleId in ruleIds)
+                {
+                    <option value="@ruleId">@ruleId</option>
+                }
+            </select>
+
+            <label for="optia11y-filter-search">Search</label>
+            <input type="search" id="optia11y-filter-search" placeholder="Filter by message or location…" />
+
+            <span class="optia11y-count" id="optia11y-count"></span>
+        </div>
+
+        <table id="optia11y-findings">
+            <thead>
+                <tr>
+                    <th class="optia11y-sortable" data-sort-key="severity">Severity</th>
+                    <th class="optia11y-sortable" data-sort-key="rule">Rule</th>
+                    <th class="optia11y-sortable" data-sort-key="criterion">Success criterion</th>
+                    <th class="optia11y-sortable" data-sort-key="confidence">Confidence</th>
+                    <th class="optia11y-sortable" data-sort-key="location">Location</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var finding in orderedFindings)
+                {
+                    var locationKey = finding.Location.ToPathString();
+                    var editorLink = Model.EditorLinks.TryGetValue(locationKey, out var link) ? link : null;
+
+                    <tr data-severity="@finding.Severity" data-confidence="@finding.Confidence" data-rule="@finding.RuleId"
+                        data-search="@($"{finding.Message} {finding.Location.PropertyName} {finding.RuleId}".ToLowerInvariant())">
+                        <td><span class="@SeverityClass(finding.Severity)">@finding.Severity</span></td>
+                        <td>@finding.RuleId</td>
+                        <td>@finding.SuccessCriterion (@finding.Level)</td>
+                        <td>
+                            @if (finding.Confidence == Confidence.NeedsReview)
+                            {
+                                <span class="optia11y-review" title="Heuristic judgement — please confirm before treating as a defect.">Needs review</span>
+                            }
+                            else
+                            {
+                                @finding.Confidence
+                            }
+                        </td>
+                        <td>
+                            @if (editorLink is not null)
+                            {
+                                <a href="@editorLink">@finding.Location.PropertyName</a>
+                            }
+                            else
+                            {
+                                @finding.Location.PropertyName
+                            }
+                        </td>
+                        <td>@finding.Message</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <script>
+            (function () {
+                var table = document.getElementById('optia11y-findings');
+                var tbody = table.querySelector('tbody');
+                var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+                var severitySelect = document.getElementById('optia11y-filter-severity');
+                var confidenceSelect = document.getElementById('optia11y-filter-confidence');
+                var ruleSelect = document.getElementById('optia11y-filter-rule');
+                var searchInput = document.getElementById('optia11y-filter-search');
+                var countLabel = document.getElementById('optia11y-count');
+
+                function applyFilters() {
+                    var severity = severitySelect.value;
+                    var confidence = confidenceSelect.value;
+                    var rule = ruleSelect.value;
+                    var search = searchInput.value.trim().toLowerCase();
+                    var visibleCount = 0;
+
+                    rows.forEach(function (row) {
+                        var matches =
+                            (!severity || row.dataset.severity === severity) &&
+                            (!confidence || row.dataset.confidence === confidence) &&
+                            (!rule || row.dataset.rule === rule) &&
+                            (!search || row.dataset.search.indexOf(search) !== -1);
+
+                        row.classList.toggle('optia11y-hidden', !matches);
+                        if (matches) {
+                            visibleCount++;
+                        }
+                    });
+
+                    countLabel.textContent = visibleCount + ' of ' + rows.length + ' finding' + (rows.length === 1 ? '' : 's');
+                }
+
+                [severitySelect, confidenceSelect, ruleSelect].forEach(function (el) {
+                    el.addEventListener('change', applyFilters);
+                });
+                searchInput.addEventListener('input', applyFilters);
+
+                var sortHeaders = Array.prototype.slice.call(table.querySelectorAll('th.optia11y-sortable'));
+                sortHeaders.forEach(function (header) {
+                    header.addEventListener('click', function () {
+                        var key = header.dataset.sortKey;
+                        var currentDir = header.getAttribute('data-sort-dir');
+                        var nextDir = currentDir === 'asc' ? 'desc' : 'asc';
+
+                        sortHeaders.forEach(function (h) { h.removeAttribute('data-sort-dir'); });
+                        header.setAttribute('data-sort-dir', nextDir);
+
+                        var attr = key === 'rule' ? 'rule'
+                            : key === 'confidence' ? 'confidence'
+                            : key === 'severity' ? 'severity'
+                            : null;
+
+                        var sorted = rows.slice().sort(function (a, b) {
+                            var va = attr ? a.dataset[attr] : a.children[sortColumnIndex(key)].textContent.trim();
+                            var vb = attr ? b.dataset[attr] : b.children[sortColumnIndex(key)].textContent.trim();
+                            var cmp = va.localeCompare(vb, undefined, { numeric: true, sensitivity: 'base' });
+                            return nextDir === 'asc' ? cmp : -cmp;
+                        });
+
+                        sorted.forEach(function (row) { tbody.appendChild(row); });
+                        rows = sorted;
+                    });
+                });
+
+                function sortColumnIndex(key) {
+                    var headerIndex = sortHeaders.findIndex(function (h) { return h.dataset.sortKey === key; });
+                    return headerIndex === -1 ? 0 : headerIndex;
+                }
+
+                applyFilters();
+            })();
+        </script>
+    }
+</body>
+</html>

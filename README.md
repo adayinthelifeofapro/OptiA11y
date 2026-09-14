@@ -247,16 +247,20 @@ includes a nested block, exercising every rule and the deep-linking path.
 
 ## Packaging
 
-`OptiA11y.Core`, `OptiA11y.Rendering`, and `OptiA11y.Cms` are packed and versioned together (see
-each project's `<Version>`) since `OptiA11y.Cms` depends on the other two as NuGet packages rather
-than project references once installed into a host. To build and pack all three into a local feed:
+`OptiA11y.Core`, `OptiA11y.Rendering`, `OptiA11y.Cms`, and `OptiA11y.Cms12` are packed and versioned
+together (see each project's `<Version>`) since the CMS-facing packages depend on `Core`/`Rendering`
+as NuGet packages rather than project references once installed into a host. `OptiA11y.Cms` targets
+Optimizely CMS 13 (`EPiServer.Cms.Core` 13.x); `OptiA11y.Cms12` targets CMS 12
+(`EPiServer.Cms.Core`/`EPiServer.CMS.UI.Core` 12.x) — install whichever matches your host's CMS
+version, not both. To build and pack everything into a local feed:
 
 ```powershell
 dotnet pack src\OptiA11y.Core\OptiA11y.Core.csproj -c Release -o .localfeed
 dotnet pack src\OptiA11y.Rendering\OptiA11y.Rendering.csproj -c Release -o .localfeed
 dotnet pack src\OptiA11y.Cms\OptiA11y.Cms.csproj -c Release -o .localfeed
+dotnet pack src\OptiA11y.Cms12\OptiA11y.Cms12.csproj -c Release -o .localfeed
 ```
 
-Bump all three versions together when any of them change — a host resolving `OptiA11y.Cms` against
-a stale cached `OptiA11y.Core`/`OptiA11y.Rendering` version will fail at runtime with a
+Bump versions together when any shared code changes — a host resolving `OptiA11y.Cms`/`OptiA11y.Cms12`
+against a stale cached `OptiA11y.Core`/`OptiA11y.Rendering` version will fail at runtime with a
 `TypeLoadException` if the assemblies have drifted apart.

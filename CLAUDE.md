@@ -16,10 +16,11 @@ dotnet test tests\OptiA11y.Core.Tests --filter "FullyQualifiedName~HeuristicRule
 # Run the sample host, then GET /optia11y/audit/page-home
 dotnet run --project sample\OptiA11y.SampleSite
 
-# Pack all three shipped packages into the local feed (see "Versioning" below)
+# Pack all shipped packages into the local feed (see "Versioning" below)
 dotnet pack src\OptiA11y.Core\OptiA11y.Core.csproj -c Release -o .localfeed
 dotnet pack src\OptiA11y.Rendering\OptiA11y.Rendering.csproj -c Release -o .localfeed
 dotnet pack src\OptiA11y.Cms\OptiA11y.Cms.csproj -c Release -o .localfeed
+dotnet pack src\OptiA11y.Cms12\OptiA11y.Cms12.csproj -c Release -o .localfeed
 
 # One-time per machine, only if working on OptiA11y.Rendering against a real browser
 pwsh src\OptiA11y.Cms\bin\Debug\net10.0\playwright.ps1 install chromium
