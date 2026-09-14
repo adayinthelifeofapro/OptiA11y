@@ -31,6 +31,73 @@ public static class HtmlFragmentParser
         @"^\s*([-*•▪◦]|\(?\d+[\.\)])\s+",
         System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.Multiline);
 
+    // Elements whose visible text is worth analysing as a standalone unit of prose (reading
+    // level, sensory characteristics, shouting). Excludes containers like <div>/<ul> so the same
+    // text isn't captured twice at multiple nesting levels.
+    private static readonly HashSet<string> BlockTextTags = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "p", "li", "blockquote", "dd", "dt", "figcaption", "td", "th"
+    };
+
+    // If a candidate block-text element has one of these among its descendants, it's a
+    // container wrapping further block-level content rather than a text leaf - skip it so we
+    // capture the inner leaf instead of a duplicate of everything inside it.
+    private static readonly HashSet<string> ContainerDescendantTags = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "p", "li", "div", "ul", "ol", "dl", "table", "blockquote"
+    };
+
+    // The fixed ARIA role vocabulary (WAI-ARIA 1.2 abstract roles excluded, since authors should
+    // never use those directly). A role outside this set is not a "maybe" - it is simply not a
+    // role that exists, which is what makes flagging it a deterministic Fail rather than NeedsReview.
+    private static readonly HashSet<string> KnownAriaRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "alert", "alertdialog", "application", "article", "banner", "button", "cell", "checkbox",
+        "columnheader", "combobox", "complementary", "contentinfo", "definition", "dialog",
+        "directory", "document", "feed", "figure", "form", "grid", "gridcell", "group", "heading",
+        "img", "link", "list", "listbox", "listitem", "log", "main", "marquee", "math", "menu",
+        "menubar", "menuitem", "menuitemcheckbox", "menuitemradio", "navigation", "none", "note",
+        "option", "presentation", "progressbar", "radio", "radiogroup", "region", "row", "rowgroup",
+        "rowheader", "scrollbar", "search", "searchbox", "separator", "slider", "spinbutton",
+        "status", "switch", "tab", "table", "tablist", "tabpanel", "term", "textbox", "timer",
+        "toolbar", "tooltip", "tree", "treegrid", "treeitem"
+    };
+
+    // The fixed set of aria-* states and properties from the WAI-ARIA specification. An
+    // attribute starting with "aria-" that isn't in this list is, deterministically, a typo or
+    // an invented attribute - assistive technology will simply ignore it.
+    private static readonly HashSet<string> KnownAriaAttributes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "aria-activedescendant", "aria-atomic", "aria-autocomplete", "aria-braillelabel",
+        "aria-brailleroledescription", "aria-busy", "aria-checked", "aria-colcount", "aria-colindex",
+        "aria-colindextext", "aria-colspan", "aria-controls", "aria-current", "aria-describedby",
+        "aria-description", "aria-details", "aria-disabled", "aria-dropeffect", "aria-errormessage",
+        "aria-expanded", "aria-flowto", "aria-grabbed", "aria-haspopup", "aria-hidden", "aria-invalid",
+        "aria-keyshortcuts", "aria-label", "aria-labelledby", "aria-level", "aria-live", "aria-modal",
+        "aria-multiline", "aria-multiselectable", "aria-orientation", "aria-owns", "aria-placeholder",
+        "aria-posinset", "aria-pressed", "aria-readonly", "aria-relevant", "aria-required",
+        "aria-roledescription", "aria-rowcount", "aria-rowindex", "aria-rowindextext", "aria-rowspan",
+        "aria-selected", "aria-setsize", "aria-sort", "aria-valuemax", "aria-valuemin", "aria-valuenow",
+        "aria-valuetext"
+    };
+
+    // Keyword -> WCAG 1.3.5 autocomplete-token category, used only to make an educated guess that
+    // a field is a common identity field worth an autocomplete attribute. Deliberately a heuristic
+    // signal: naming conventions vary too much for this to be a structural fact.
+    private static readonly (string Category, string[] Keywords)[] InputPurposeKeywords =
+    {
+        ("email", new[] { "email", "e-mail" }),
+        ("tel", new[] { "phone", "telephone", "mobile", "tel" }),
+        ("name", new[] { "fullname", "full-name", "your-name", "yourname" }),
+        ("given-name", new[] { "firstname", "first-name", "fname", "given-name" }),
+        ("family-name", new[] { "lastname", "last-name", "lname", "surname", "family-name" }),
+        ("postal-code", new[] { "zip", "zipcode", "postcode", "postal" }),
+        ("street-address", new[] { "address", "street" }),
+        ("cc-number", new[] { "cardnumber", "card-number", "creditcard" }),
+        ("bday", new[] { "birthdate", "dob", "dateofbirth", "birthday" }),
+        ("organization", new[] { "company", "organization", "organisation" })
+    };
+
     public static IEnumerable<ContentFragment> Parse(string html, SourceLocation baseLocation)
     {
         if (string.IsNullOrWhiteSpace(html))
@@ -92,6 +159,13 @@ public static class HtmlFragmentParser
                         ordinal++;
                         yield return fakeList;
                     }
+
+                    var emphasisBlock = TryBuildEmphasisBlockFragment(node, baseLocation, ordinal);
+                    if (emphasisBlock is not null)
+                    {
+                        ordinal++;
+                        yield return emphasisBlock;
+                    }
                     break;
 
                 case "html":
@@ -101,6 +175,14 @@ public static class HtmlFragmentParser
                         ordinal++;
                         yield return langFragment;
                     }
+                    break;
+
+                case "svg" or "area" or "object" or "embed":
+                    yield return BuildNonTextElementFragment(node, baseLocation, ordinal++);
+                    break;
+
+                case "fieldset":
+                    yield return BuildFieldsetFragment(node, baseLocation, ordinal++);
                     break;
             }
 
@@ -131,7 +213,33 @@ public static class HtmlFragmentParser
                     ordinal++;
                     yield return textStyleFragment;
                 }
+
+                var textFragment = TryBuildTextFragment(node, baseLocation, ordinal);
+                if (textFragment is not null)
+                {
+                    ordinal++;
+                    yield return textFragment;
+                }
+
+                var ariaAttributesFragment = TryBuildAriaAttributesFragment(node, baseLocation, ordinal);
+                if (ariaAttributesFragment is not null)
+                {
+                    ordinal++;
+                    yield return ariaAttributesFragment;
+                }
+
+                var ariaReferenceFragments = BuildAriaReferenceFragments(node, baseLocation, ordinal).ToList();
+                foreach (var ariaReferenceFragment in ariaReferenceFragments)
+                {
+                    yield return ariaReferenceFragment;
+                }
+                ordinal += ariaReferenceFragments.Count;
             }
+        }
+
+        foreach (var radioGroup in DetectOrphanRadioGroups(doc, baseLocation, ordinal))
+        {
+            yield return radioGroup;
         }
     }
 
@@ -336,9 +444,14 @@ public static class HtmlFragmentParser
             tabIndex = parsedTabIndex;
         }
 
+        var isNestedInInteractiveAncestor = isNativelyInteractive
+            && node.Ancestors().Any(a => NativelyInteractiveTags.Contains(a.Name)
+                || (a.Name == "a" && a.Attributes.Contains("href")));
+
         var isNoteworthy = (ariaHidden && isNativelyInteractive)
             || (tabIndex is > 0)
-            || !string.IsNullOrEmpty(accessKey);
+            || !string.IsNullOrEmpty(accessKey)
+            || isNestedInInteractiveAncestor;
 
         if (!isNoteworthy)
         {
@@ -352,7 +465,8 @@ public static class HtmlFragmentParser
             ariaHidden,
             role,
             accessKey,
-            isNativelyInteractive);
+            isNativelyInteractive,
+            isNestedInInteractiveAncestor);
     }
 
     private static bool IsButtonLikeInput(HtmlNode node)
@@ -389,11 +503,19 @@ public static class HtmlFragmentParser
         var text = HtmlEntity.DeEntitize(node.InnerText ?? string.Empty).Trim();
         var isDocumentLink = DocumentExtensions.Any(ext => href.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
 
+        var hasImageWithAlt = node.Descendants("img")
+            .Any(img => !string.IsNullOrWhiteSpace(img.GetAttributeValue("alt", string.Empty)));
+        var hasAccessibleName = text.Length > 0 || HasAriaLabel(node) || hasImageWithAlt;
+
+        var titleAttribute = node.Attributes.Contains("title") ? node.GetAttributeValue("title", string.Empty) : null;
+
         return new LinkFragment(
             baseLocation with { Ordinal = ordinal },
             href,
             text,
-            isDocumentLink);
+            isDocumentLink,
+            hasAccessibleName,
+            titleAttribute);
     }
 
     private static HeadingFragment BuildHeadingFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
@@ -422,42 +544,101 @@ public static class HtmlFragmentParser
 
         var columnCount = firstRow?.Elements("td").Concat(firstRow.Elements("th")).Count() ?? 0;
 
+        var cells = (IEnumerable<HtmlNode>?)node.SelectNodes(".//td|.//th") ?? Enumerable.Empty<HtmlNode>();
+        var hasMergedCells = cells.Any(c => ParseSpan(c, "rowspan") > 1 || ParseSpan(c, "colspan") > 1);
+
+        var headerCells = (IEnumerable<HtmlNode>?)node.SelectNodes(".//th") ?? Enumerable.Empty<HtmlNode>();
+        var allHeaderCellsHaveScope = headerCells.All(th => !string.IsNullOrWhiteSpace(th.GetAttributeValue("scope", string.Empty)));
+
+        var rows = node.SelectNodes(".//tr");
+        var rowLengthsConsistent = rows is null
+            || rows.Select(r => r.Elements("td").Concat(r.Elements("th")).Count()).Distinct().Count() <= 1;
+
         return new TableFragment(
             baseLocation with { Ordinal = ordinal },
             hasHeaderCells,
             hasCaption,
-            columnCount);
+            columnCount,
+            hasMergedCells,
+            allHeaderCellsHaveScope,
+            rowLengthsConsistent);
     }
+
+    private static int ParseSpan(HtmlNode cell, string attributeName) =>
+        int.TryParse(cell.GetAttributeValue(attributeName, "1"), out var span) ? span : 1;
 
     private static MediaFragment BuildMediaFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
     {
         var src = node.GetAttributeValue("src", string.Empty);
 
-        var hasTrack = node.SelectNodes(".//track") is { Count: > 0 } tracks
+        var tracks = node.SelectNodes(".//track");
+
+        var hasTrack = tracks is { Count: > 0 }
             && tracks.Any(t => string.Equals(t.GetAttributeValue("kind", string.Empty), "captions", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(t.GetAttributeValue("kind", string.Empty), "subtitles", StringComparison.OrdinalIgnoreCase));
+
+        var hasDescriptionTrack = tracks is { Count: > 0 }
+            && tracks.Any(t => string.Equals(t.GetAttributeValue("kind", string.Empty), "descriptions", StringComparison.OrdinalIgnoreCase));
 
         // A nearby sibling link mentioning "transcript" is a heuristic signal, not proof - the
         // rule layer treats this as NeedsReview rather than a deterministic pass/fail.
         var hasNearbyTranscriptLink = node.ParentNode?.SelectNodes(".//a") is { } links
             && links.Any(a => (a.InnerText ?? string.Empty).Contains("transcript", StringComparison.OrdinalIgnoreCase));
 
+        var autoplay = node.Attributes.Contains("autoplay");
+        var muted = node.Attributes.Contains("muted");
+        var hasControls = node.Attributes.Contains("controls");
+
         return new MediaFragment(
             baseLocation with { Ordinal = ordinal },
             src,
             node.Name,
-            hasTrack || hasNearbyTranscriptLink);
+            hasTrack || hasNearbyTranscriptLink,
+            autoplay,
+            muted,
+            hasControls,
+            hasDescriptionTrack);
     }
 
     private static FormFieldFragment BuildFormFieldFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
     {
         var inputType = node.Name == "input" ? node.GetAttributeValue("type", "text") : null;
+        var autocompleteToken = node.Attributes.Contains("autocomplete")
+            ? node.GetAttributeValue("autocomplete", string.Empty)
+            : null;
 
         return new FormFieldFragment(
             baseLocation with { Ordinal = ordinal },
             node.Name,
             inputType,
-            HasAccessibleName(node));
+            HasAccessibleName(node),
+            autocompleteToken,
+            InferPurposeCategory(node));
+    }
+
+    private static string? InferPurposeCategory(HtmlNode node)
+    {
+        var id = node.GetAttributeValue("id", string.Empty);
+        var name = node.GetAttributeValue("name", string.Empty);
+        var placeholder = node.GetAttributeValue("placeholder", string.Empty);
+
+        var labelText = string.Empty;
+        if (!string.IsNullOrEmpty(id))
+        {
+            labelText = node.OwnerDocument.DocumentNode.SelectSingleNode($".//label[@for='{id}']")?.InnerText ?? string.Empty;
+        }
+
+        var haystack = HtmlEntity.DeEntitize($"{id} {name} {placeholder} {labelText}").ToLowerInvariant();
+
+        foreach (var (category, keywords) in InputPurposeKeywords)
+        {
+            if (keywords.Any(keyword => haystack.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+            {
+                return category;
+            }
+        }
+
+        return null;
     }
 
     private static ButtonFragment BuildButtonFragment(HtmlNode node, SourceLocation baseLocation, int ordinal, string controlType)
@@ -468,11 +649,13 @@ public static class HtmlFragmentParser
         var hasValue = node.Name == "input" && !string.IsNullOrWhiteSpace(node.GetAttributeValue("value", string.Empty));
 
         var hasAccessibleName = hasVisibleText || hasValue || HasAriaLabel(node);
+        var titleAttribute = node.Attributes.Contains("title") ? node.GetAttributeValue("title", string.Empty) : null;
 
         return new ButtonFragment(
             baseLocation with { Ordinal = ordinal },
             controlType,
-            hasAccessibleName);
+            hasAccessibleName,
+            titleAttribute);
     }
 
     private static IframeFragment BuildIframeFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
@@ -512,4 +695,205 @@ public static class HtmlFragmentParser
     private static bool HasAriaLabel(HtmlNode node) =>
         !string.IsNullOrWhiteSpace(node.GetAttributeValue("aria-label", string.Empty))
         || !string.IsNullOrWhiteSpace(node.GetAttributeValue("aria-labelledby", string.Empty));
+
+    private static NonTextElementFragment BuildNonTextElementFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var isAriaHidden = string.Equals(node.GetAttributeValue("aria-hidden", string.Empty), "true", StringComparison.OrdinalIgnoreCase);
+
+        var hasAccessibleName = node.Name switch
+        {
+            "svg" => node.Elements("title").Any(t => !string.IsNullOrWhiteSpace(HtmlEntity.DeEntitize(t.InnerText ?? string.Empty)))
+                || HasAriaLabel(node),
+            "area" => !string.IsNullOrWhiteSpace(node.GetAttributeValue("alt", string.Empty)) || HasAriaLabel(node),
+            _ => node.Attributes.Contains("title") && !string.IsNullOrWhiteSpace(node.GetAttributeValue("title", string.Empty))
+                || HasAriaLabel(node)
+                || !string.IsNullOrWhiteSpace(HtmlEntity.DeEntitize(node.InnerText ?? string.Empty))
+        };
+
+        return new NonTextElementFragment(
+            baseLocation with { Ordinal = ordinal },
+            node.Name,
+            hasAccessibleName,
+            isAriaHidden);
+    }
+
+    private static FieldsetFragment BuildFieldsetFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var hasLegend = node.Elements("legend").Any();
+
+        return new FieldsetFragment(
+            baseLocation with { Ordinal = ordinal },
+            hasLegend);
+    }
+
+    private static EmphasisBlockFragment? TryBuildEmphasisBlockFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        // Restrict to <p> to avoid over-firing on <div>/<span> wrapper elements, which are used
+        // for all sorts of non-prose layout purposes.
+        if (node.Name != "p")
+        {
+            return null;
+        }
+
+        var text = HtmlEntity.DeEntitize(node.InnerText ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text) || text.Length > 120)
+        {
+            return null;
+        }
+
+        var elementChildren = node.ChildNodes.Where(c => c.NodeType == HtmlNodeType.Element).ToList();
+        var isFullyBold = elementChildren.Count > 0
+            && elementChildren.All(c => c.Name is "b" or "strong")
+            && node.ChildNodes.Where(c => c.NodeType == HtmlNodeType.Text)
+                .All(c => string.IsNullOrWhiteSpace(c.InnerText));
+
+        var style = node.GetAttributeValue("style", string.Empty);
+        var fontSize = ParsePixelValue(ExtractStyleProperty(style, "font-size"));
+        var isLargeFont = fontSize is >= 18;
+
+        if (!isFullyBold && !isLargeFont)
+        {
+            return null;
+        }
+
+        return new EmphasisBlockFragment(
+            baseLocation with { Ordinal = ordinal },
+            text.Length > 80 ? text[..80] : text,
+            text.Length);
+    }
+
+    private static TextFragment? TryBuildTextFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        if (!BlockTextTags.Contains(node.Name))
+        {
+            return null;
+        }
+
+        // Skip containers that wrap further block-level content - the inner leaf will be
+        // captured on its own, rather than duplicating its text here too.
+        if (node.Descendants().Any(d => ContainerDescendantTags.Contains(d.Name)))
+        {
+            return null;
+        }
+
+        var text = HtmlEntity.DeEntitize(node.InnerText ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        return new TextFragment(
+            baseLocation with { Ordinal = ordinal },
+            text,
+            GetNearestLang(node));
+    }
+
+    private static string? GetNearestLang(HtmlNode node)
+    {
+        for (var current = node; current is not null; current = current.ParentNode)
+        {
+            if (current.Attributes.Contains("lang"))
+            {
+                var lang = current.GetAttributeValue("lang", string.Empty);
+                if (!string.IsNullOrWhiteSpace(lang))
+                {
+                    return lang;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static AriaAttributesFragment? TryBuildAriaAttributesFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var role = node.Attributes.Contains("role") ? node.GetAttributeValue("role", string.Empty) : null;
+
+        var roleIsUnknown = !string.IsNullOrWhiteSpace(role)
+            && role.Split(' ', StringSplitOptions.RemoveEmptyEntries).Any(r => !KnownAriaRoles.Contains(r));
+
+        var unknownAriaAttributeNames = node.Attributes
+            .Select(a => a.Name)
+            .Where(name => name.StartsWith("aria-", StringComparison.OrdinalIgnoreCase) && !KnownAriaAttributes.Contains(name))
+            .ToList();
+
+        // Only emit when there's genuinely something invalid - matches the "noteworthy only"
+        // pattern used elsewhere in the parser to keep fragment volume down.
+        if (!roleIsUnknown && unknownAriaAttributeNames.Count == 0)
+        {
+            return null;
+        }
+
+        return new AriaAttributesFragment(
+            baseLocation with { Ordinal = ordinal },
+            node.Name,
+            role,
+            roleIsUnknown,
+            unknownAriaAttributeNames);
+    }
+
+    private static IEnumerable<AriaReferenceFragment> BuildAriaReferenceFragments(HtmlNode node, SourceLocation baseLocation, int startingOrdinal)
+    {
+        var ordinal = startingOrdinal;
+        var owningDocument = node.OwnerDocument;
+
+        foreach (var attributeName in new[] { "aria-labelledby", "aria-describedby" })
+        {
+            var value = node.GetAttributeValue(attributeName, string.Empty);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            foreach (var id in value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var resolved = owningDocument.DocumentNode.SelectSingleNode($".//*[@id='{id}']") is not null;
+                yield return new AriaReferenceFragment(baseLocation with { Ordinal = ordinal++ }, attributeName, id, resolved);
+            }
+        }
+
+        if (node.Name == "label")
+        {
+            var forId = node.GetAttributeValue("for", string.Empty);
+            if (!string.IsNullOrWhiteSpace(forId))
+            {
+                var resolved = owningDocument.DocumentNode.SelectSingleNode($".//*[@id='{forId}']") is not null;
+                yield return new AriaReferenceFragment(baseLocation with { Ordinal = ordinal }, "for", forId, resolved);
+            }
+        }
+    }
+
+    private static IEnumerable<RadioGroupFragment> DetectOrphanRadioGroups(HtmlDocument doc, SourceLocation baseLocation, int startingOrdinal)
+    {
+        var ordinal = startingOrdinal;
+
+        var radioGroups = doc.DocumentNode.Descendants("input")
+            .Where(i => string.Equals(i.GetAttributeValue("type", string.Empty), "radio", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(i.GetAttributeValue("name", string.Empty)))
+            .GroupBy(i => i.GetAttributeValue("name", string.Empty), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in radioGroups)
+        {
+            var inputs = group.ToList();
+            if (inputs.Count < 2)
+            {
+                continue;
+            }
+
+            var hasCommonFieldset = inputs[0].Ancestors("fieldset")
+                .Any(fieldset => inputs.All(i => i.Ancestors("fieldset").Contains(fieldset)));
+
+            if (hasCommonFieldset)
+            {
+                // A fieldset without a legend is already reported by the plain FieldsetFragment
+                // check emitted for that element - don't double-report the same underlying issue.
+                continue;
+            }
+
+            yield return new RadioGroupFragment(
+                baseLocation with { Ordinal = ordinal++ },
+                group.Key,
+                inputs.Count);
+        }
+    }
 }

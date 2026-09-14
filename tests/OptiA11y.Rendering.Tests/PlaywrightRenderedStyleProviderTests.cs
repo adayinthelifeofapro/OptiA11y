@@ -10,8 +10,9 @@ namespace OptiA11y.Rendering.Tests;
 /// NOTE: requires Playwright's Chromium binary to be installed once via
 /// <c>pwsh bin/Debug/net10.0/playwright.ps1 install chromium</c> in this test project's output
 /// directory. If the browser is unavailable, <see cref="PlaywrightRenderedStyleProvider"/> fails
-/// soft and returns an empty list; this test detects that case and skips its assertions rather
-/// than failing the whole suite in environments where the browser isn't installed.
+/// soft and returns <see cref="RenderedPageDiagnostics.Empty"/>; this test detects that case and
+/// skips its assertions rather than failing the whole suite in environments where the browser
+/// isn't installed.
 /// </summary>
 public sealed class PlaywrightRenderedStyleProviderTests
 {
@@ -22,14 +23,16 @@ public sealed class PlaywrightRenderedStyleProviderTests
         var fixtureUri = new Uri(fixturePath);
 
         await using var provider = new PlaywrightRenderedStyleProvider();
-        var styles = await provider.CaptureAsync(fixtureUri);
+        var diagnostics = await provider.CaptureAsync(fixtureUri);
 
-        if (styles.Count == 0)
+        if (diagnostics.IsEmpty)
         {
             // Playwright's Chromium binary is not installed in this environment; the provider
             // already fails soft (by design), so there is nothing further to assert here.
             return;
         }
+
+        var styles = diagnostics.TextStyles;
 
         var lowContrast = Assert.Single(styles, s => s.Text.Contains("Low contrast", StringComparison.OrdinalIgnoreCase));
         Assert.Equal("justify", styles.Single(s => s.Text.Contains("Justified paragraph", StringComparison.OrdinalIgnoreCase)).TextAlign);
@@ -44,5 +47,36 @@ public sealed class PlaywrightRenderedStyleProviderTests
 
         Assert.NotEmpty(lowContrast.Color);
         Assert.NotEmpty(lowContrast.BackgroundColor);
+    }
+
+    [Fact]
+    public async Task CaptureAsync_ExtractsElementAndPageDiagnosticsFromFixture()
+    {
+        var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "diagnostics-fixture.html");
+        var fixtureUri = new Uri(fixturePath);
+
+        await using var provider = new PlaywrightRenderedStyleProvider();
+        var diagnostics = await provider.CaptureAsync(fixtureUri);
+
+        if (diagnostics.IsEmpty)
+        {
+            // Playwright's Chromium binary is not installed in this environment; the provider
+            // already fails soft (by design), so there is nothing further to assert here.
+            return;
+        }
+
+        var tinyTarget = Assert.Single(diagnostics.Elements, e => e.Description.Contains("\"X\""));
+        Assert.True(tinyTarget.WidthPx < 24);
+        Assert.False(tinyTarget.HasVisibleFocusIndicator);
+
+        var roomyTarget = Assert.Single(diagnostics.Elements, e => e.Description.Contains("\"OK\""));
+        Assert.True(roomyTarget.WidthPx >= 24 && roomyTarget.HeightPx >= 24);
+        Assert.True(roomyTarget.HasVisibleFocusIndicator);
+
+        Assert.Contains(diagnostics.AnimatedElementDescriptions, d => d.Contains("<div>"));
+
+        Assert.True(diagnostics.OverflowsAtNarrowViewport);
+
+        Assert.Contains(diagnostics.TextSpacingClippedSamples, s => s.Contains("deliberately height-constrained"));
     }
 }

@@ -7,7 +7,10 @@ namespace OptiA11y.Core.Rules.LinkPurpose;
 /// <summary>
 /// Evaluates link text for descriptiveness out of context. Both checks here are heuristic
 /// judgements about whether link text conveys purpose, so all findings are
-/// <see cref="Confidence.NeedsReview"/>.
+/// <see cref="Confidence.NeedsReview"/>. Whether a link has an accessible name AT ALL (via
+/// visible text, aria-label, or an inner image's alt) is a separate, deterministic concern
+/// handled by <see cref="OptiA11y.Core.Rules.LinkName.LinkNameRule"/> - a link with no visible
+/// text but a valid aria-label has nothing wrong with it from THIS rule's point of view.
 /// </summary>
 public sealed class LinkPurposeRule : IContentRule
 {
@@ -44,12 +47,6 @@ public sealed class LinkPurposeRule : IContentRule
         foreach (var link in links)
         {
             var text = link.Text.Trim();
-
-            if (text.Length == 0)
-            {
-                yield return NeedsReview(link, "This link has no visible text. Screen reader users will hear only the URL, or nothing at all.");
-                continue;
-            }
 
             if (NonDescriptivePhrases.Contains(text))
             {

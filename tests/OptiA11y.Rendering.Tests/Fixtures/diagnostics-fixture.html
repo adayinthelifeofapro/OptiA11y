@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Diagnostics fixture</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+
+    .tiny-target { width: 16px; height: 16px; display: inline-block; }
+    .roomy-target { width: 44px; height: 44px; display: inline-block; }
+
+    .no-focus-style:focus { outline: none; }
+    .has-focus-style:focus { outline: 3px solid blue; }
+
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .spinning { animation: spin 2s linear infinite; width: 20px; height: 20px; }
+
+    .wide-table { width: 3000px; }
+
+    .clip-on-spacing { height: 1.2em; overflow: hidden; width: 200px; }
+  </style>
+</head>
+<body>
+  <button class="tiny-target no-focus-style">X</button>
+  <button class="roomy-target has-focus-style">OK</button>
+
+  <div class="spinning"></div>
+
+  <table class="wide-table"><tr><td>Wide table forcing horizontal scroll</td></tr></table>
+
+  <p class="clip-on-spacing">This paragraph is deliberately height-constrained so it clips once spacing overrides are applied to it.</p>
+</body>
+</html>

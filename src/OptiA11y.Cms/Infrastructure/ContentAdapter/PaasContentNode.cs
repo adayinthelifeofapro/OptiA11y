@@ -36,7 +36,9 @@ public enum PaasPropertyKind
 /// <param name="ContentReference">The content/block identifier.</param>
 /// <param name="BlockName">The display name for this node when it is a nested block, used to build the block path segment. Null for the top-level content item.</param>
 /// <param name="Properties">The properties on this content item or block.</param>
+/// <param name="DisplayName">The content item's Name, used by <see cref="OptiA11y.Core.Rules.PageTitle.PageTitleRule"/>. Populated for every node (root and blocks alike); only the root's value is used for that rule.</param>
 public sealed record PaasContentNode(
     string ContentReference,
     string? BlockName,
-    IReadOnlyList<PaasProperty> Properties);
+    IReadOnlyList<PaasProperty> Properties,
+    string? DisplayName = null);

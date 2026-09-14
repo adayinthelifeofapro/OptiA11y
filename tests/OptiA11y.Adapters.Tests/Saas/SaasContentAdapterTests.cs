@@ -78,4 +78,22 @@ public sealed class SaasContentAdapterTests
         Assert.Equal("Body", image.Location.PropertyName);
         Assert.Equal(new[] { "MainContentArea:block-1" }, image.Location.BlockPath);
     }
+
+    [Fact]
+    public async Task BuildAsync_ExtractsRootDisplayName_AsPageMetadataFragment()
+    {
+        var response = new SaasContentResponse
+        {
+            ContentLink = "page-1",
+            DisplayName = "Contact us",
+            Properties = new List<SaasContentProperty>()
+        };
+
+        var adapter = new SaasContentAdapter(new FakeSaasContentApiClient(response));
+        var document = await adapter.BuildAsync("page-1", CancellationToken.None);
+
+        Assert.NotNull(document);
+        var metadata = document!.Get<PageMetadataFragment>().Single();
+        Assert.Equal("Contact us", metadata.DisplayName);
+    }
 }

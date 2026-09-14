@@ -28,7 +28,10 @@ public sealed class SaasContentAdapter
             return null;
         }
 
-        var fragments = new List<ContentFragment>();
+        var fragments = new List<ContentFragment>
+        {
+            new PageMetadataFragment(SourceLocation.OnProperty(root.ContentLink, "Name"), root.DisplayName)
+        };
         CollectFragments(root, blockPath: Array.Empty<string>(), fragments);
 
         return new AuditDocument(contentReference, fragments);

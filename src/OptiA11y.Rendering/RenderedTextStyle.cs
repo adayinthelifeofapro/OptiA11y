@@ -15,10 +15,16 @@ namespace OptiA11y.Rendering;
 /// <param name="FontSizePx">The computed font size in pixels.</param>
 /// <param name="FontWeight">The computed font weight (e.g. "400", "700", "bold").</param>
 /// <param name="TextAlign">The computed text-align value (e.g. "left", "justify").</param>
+/// <param name="HasBackgroundImage">
+/// True when the nearest ancestor with a paintable background actually paints an image or
+/// gradient rather than a flat color, meaning <see cref="BackgroundColor"/> is only the fallback
+/// solid color behind it, not what's actually visible.
+/// </param>
 public sealed record RenderedTextStyle(
     string Text,
     string Color,
     string BackgroundColor,
     double FontSizePx,
     string FontWeight,
-    string TextAlign);
+    string TextAlign,
+    bool HasBackgroundImage = false);

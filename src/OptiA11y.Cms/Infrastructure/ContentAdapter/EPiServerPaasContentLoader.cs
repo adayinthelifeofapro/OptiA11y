@@ -118,6 +118,6 @@ public sealed class EPiServerPaasContentLoader : IPaasContentLoader
             }
         }
 
-        return new PaasContentNode(content.ContentLink.ToString(), blockName, properties);
+        return new PaasContentNode(content.ContentLink.ToString(), blockName, properties, content.Name);
     }
 }
