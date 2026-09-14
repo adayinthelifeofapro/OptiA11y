@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<languages>
+  <language name="Norwegian" id="no">
+    <episerver>
+      <shell>
+        <resources>
+          <texts>
+            <aboutepiserver>Om Optimizely</aboutepiserver>
+            <add>Legg til</add>
+            <cancel>Avbryt</cancel>
+            <close>Lukk</close>
+            <delete>Slett</delete>
+            <description>Beskrivelse</description>
+            <edit>Rediger</edit>
+            <error>Feil</error>
+            <errormoreinformationtext>Detaljert feilmelding</errormoreinformationtext>
+            <errormoreinformationtitle>Vis detaljert feilmelding</errormoreinformationtitle>
+            <help>Hjelp</help>
+            <internalservererror>Intern serverfeil</internalservererror>
+            <logout>Logg ut</logout>
+            <menu>Meny</menu>
+            <menusearchprovidercategory>Hopp til</menusearchprovidercategory>
+            <name>Navn</name>
+            <ok>OK</ok>
+            <save>Lagre</save>
+            <saving>Lagrer</saving>
+            <select>Velg</select>
+            <settings>Innstillinger</settings>
+            <today>I dag</today>
+            <undo>Angre</undo>
+            <unknowngadget>Ukjent gadget</unknowngadget>
+            <yesterday>I går</yesterday>
+          </texts>
+        </resources>
+      </shell>
+    </episerver>
+  </language>
+</languages>

@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>EPiServer.Shell.UI</id>
+    <version>13.1.0</version>
+    <authors>Optimizely</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="file">license.txt</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <icon>icon.png</icon>
+    <readme>Readme.md</readme>
+    <projectUrl>https://www.optimizely.com/products/content-management</projectUrl>
+    <description>User interface code for EPiServer products</description>
+    <copyright>© 2023 by Optimizely. All rights reserved</copyright>
+    <tags>Optimizely EPiServer CMS</tags>
+    <repository type="git" url="https://github.com/episerver/cms" commit="dbbbdbb7989088fc2a5301f9096eeba756005ce5" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="EPiServer.Shell" version="[13.1.0]" exclude="Build,Analyzers" />
+        <dependency id="EPiServer.Telemetry" version="[13.1.0]" exclude="Build,Analyzers" />
+        <dependency id="Azure.Identity" version="1.17.1" exclude="Build,Analyzers" />
+        <dependency id="Castle.Core" version="[5.2.1, 6.0.0)" exclude="Build,Analyzers" />
+        <dependency id="MailKit" version="[4.16.0, 5.0.0)" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.AspNetCore.StaticFiles" version="2.3.9" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Data.SqlClient" version="[6.1.4, 7.0.0)" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Caching.Abstractions" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Caching.Memory" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Configuration" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Configuration.Abstractions" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.DependencyInjection" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.DependencyModel" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Diagnostics.HealthChecks" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.FileProviders.Abstractions" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Hosting.Abstractions" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Http" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Options" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Options.ConfigurationExtensions" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Options.DataAnnotations" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.IdentityModel.Protocols.OpenIdConnect" version="8.15.0" exclude="Build,Analyzers" />
+        <dependency id="SixLabors.ImageSharp" version="[3.1.12, 4.0.0)" exclude="Build,Analyzers" />
+        <dependency id="System.IO.Packaging" version="10.0.2" exclude="Build,Analyzers" />
+        <dependency id="System.Security.Cryptography.Xml" version="10.0.6" exclude="Build,Analyzers" />
+        <dependency id="System.Security.Permissions" version="10.0.2" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>

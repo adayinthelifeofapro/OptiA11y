@@ -1,0 +1,2 @@
+//>>built
+define("epi/shell/layout/ParentContainer",["dojo/_base/declare","epi/shell/layout/_ExtraInforWidgetMixin","epi/shell/layout/GroupContainer"],function(_1,_2,_3){return _1([_3,_2],{_setNameAttr:function(_4){this.inherited(arguments);this._buildExtraInfoWidget(_4);}});});

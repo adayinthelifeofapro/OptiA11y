@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <AssemblyName>EPiServer.Shell</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_da.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_de.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_en.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_es.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_fi.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_fr.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_it.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_ja.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_nl.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_no.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_sv.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_zh-CN.xml" />
+    <None Remove="EPiServer.Shell.EmbeddedLangFiles.newtext_EPiServer.Shell.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_da.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_da.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_de.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_de.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_en.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_en.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_es.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_es.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_fi.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_fi.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_fr.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_fr.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_it.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_it.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_ja.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_ja.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_nl.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_nl.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_no.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_no.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_sv.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_sv.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_zh-CN.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.EPiServer.Shell_zh-CN.xml" />
+    <EmbeddedResource Include="EPiServer.Shell.EmbeddedLangFiles.newtext_EPiServer.Shell.xml" LogicalName="EPiServer.Shell.EmbeddedLangFiles.newtext_EPiServer.Shell.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="EPiServer.Framework" />
+    <Reference Include="EPiServer" />
+    <Reference Include="EPiServer.Cms.AspNetCore" />
+    <Reference Include="EPiServer.Framework.AspNetCore" />
+    <Reference Include="EPiServer.ApplicationModules" />
+    <Reference Include="EPiServer.Licensing" />
+    <Reference Include="EPiServer.Data" />
+    <Reference Include="EPiServer.Cache" />
+    <Reference Include="EPiServer.Cms.AspNetCore.Routing" />
+  </ItemGroup>
+</Project>

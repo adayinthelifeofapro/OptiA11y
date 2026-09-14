@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<languages>
+  <language name="Dutch" id="nl">
+    <episerver>
+      <shell>
+        <resources>
+          <texts>
+            <aboutepiserver>Info over Optimizely</aboutepiserver>
+            <add>Toevoegen</add>
+            <cancel>Annuleren</cancel>
+            <close>Sluiten</close>
+            <delete>Verwijderen</delete>
+            <description>Beschrijving</description>
+            <edit>Bewerken</edit>
+            <error>Fout</error>
+            <errormoreinformationtext>Gedetailleerd foutbericht</errormoreinformationtext>
+            <errormoreinformationtitle>Gedetailleerd foutbericht weergeven</errormoreinformationtitle>
+            <help>Help</help>
+            <internalservererror>Interne serverfout</internalservererror>
+            <logout>Afmelden</logout>
+            <menu>Menu</menu>
+            <menusearchprovidercategory>Ga naar</menusearchprovidercategory>
+            <name>Naam</name>
+            <ok>OK</ok>
+            <save>Opslaan</save>
+            <saving>Opslaan</saving>
+            <select>Selecteren</select>
+            <settings>Instellingen</settings>
+            <today>Vandaag</today>
+            <undo>Ongedaan maken</undo>
+            <unknowngadget>Onbekend gadget</unknowngadget>
+            <yesterday>Gisteren</yesterday>
+          </texts>
+        </resources>
+      </shell>
+    </episerver>
+  </language>
+</languages>

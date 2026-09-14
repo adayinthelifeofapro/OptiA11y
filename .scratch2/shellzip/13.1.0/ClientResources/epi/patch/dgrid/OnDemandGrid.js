@@ -1,0 +1,2 @@
+//>>built
+define("epi/patch/dgrid/OnDemandGrid",["dojo/aspect","dgrid/OnDemandGrid"],function(_1,_2){_1.after(_2.prototype,"renderHeader",function(){for(var _3 in this.columns){if(Object.hasOwnProperty.call(this.columns,_3)){var _4=this.columns[_3];_4.headerNode.title=_4.label||_4.field;}}});});

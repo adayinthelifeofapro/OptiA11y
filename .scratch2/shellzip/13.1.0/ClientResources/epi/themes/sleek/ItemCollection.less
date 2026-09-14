@@ -1,0 +1,85 @@
+@import "variables";
+
+.Sleek
+{
+    .epi-item-collection-editor
+    {
+        .epi-max-width;
+        border-radius: @border-radius;
+
+        &.epi-item-collection-editorError
+        {
+            .epi-content-area-editor
+            {
+                border-color: @error-border-color;
+            }
+        }
+
+        .dgrid-focus {
+            .epi-selectedItemInactiveBackground;
+        }
+
+        .epi-content-area-editor
+        {
+            .dgrid
+            {
+                height: auto;
+
+                .dojoDndItemBefore
+                {
+                    border-top: 2px solid @dnd-dropseparator-color;
+                }
+
+                .dojoDndItemAfter
+                {
+                    border-bottom: 2px solid @dnd-dropseparator-color;
+                }
+            }
+
+            .dgrid-scroller
+            {
+                position: relative;
+            }
+
+            .dgrid-no-data
+            {
+                padding: 0;
+            }
+
+            .dgrid-row
+            {
+                border: solid 1px @border-color;
+                border-radius: @border-radius;
+                margin: 0 0 4px 0;
+
+                .epi-rowIcon
+                {
+                    display: block;
+                    float: left;
+                    margin: -5px 5px -5px -5px;
+                    padding: 6px 4px 5px 4px;
+                }
+                &.dgrid-row-odd,
+                &.dgrid-row-even{
+                     background: @epi-grid-row-odd;
+                     padding: 12px 16px;
+                }
+            }
+        }
+
+        &.epi-item-collection-editorFocused
+        {
+            .epi-content-area-editor
+            {
+                border-style: solid;
+				.epi-focused();
+            }
+
+            .dgrid-focus {
+                border: 2px solid @focused-border-color !important;
+                border-radius: @border-radius;
+                background-color: @textbox-background-color;
+            }
+        }
+    }
+}

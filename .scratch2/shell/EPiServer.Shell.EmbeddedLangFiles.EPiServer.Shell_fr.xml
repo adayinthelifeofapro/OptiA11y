@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<languages>
+  <language name="French" id="fr">
+    <episerver>
+      <shell>
+        <resources>
+          <texts>
+            <aboutepiserver>À propos d'Optimizely</aboutepiserver>
+            <add>Ajouter</add>
+            <cancel>Annuler</cancel>
+            <close>Fermer</close>
+            <delete>Supprimer</delete>
+            <description>Description</description>
+            <edit>Modifier</edit>
+            <error>Erreur</error>
+            <errormoreinformationtext>Message d'erreur détaillé</errormoreinformationtext>
+            <errormoreinformationtitle>Afficher le message d'erreur détaillé</errormoreinformationtitle>
+            <help>Aide</help>
+            <internalservererror>Erreur serveur interne</internalservererror>
+            <logout>Déconnexion</logout>
+            <menu>Menu</menu>
+            <menusearchprovidercategory>Aller à</menusearchprovidercategory>
+            <name>Nom</name>
+            <ok>OK</ok>
+            <save>Enregistrer</save>
+            <saving>Enregistrement</saving>
+            <select>Sélectionner</select>
+            <settings>Paramètres</settings>
+            <today>Aujourd'hui</today>
+            <undo>Annuler</undo>
+            <unknowngadget>Gadget inconnu</unknowngadget>
+            <yesterday>Hier</yesterday>
+          </texts>
+        </resources>
+      </shell>
+    </episerver>
+  </language>
+</languages>

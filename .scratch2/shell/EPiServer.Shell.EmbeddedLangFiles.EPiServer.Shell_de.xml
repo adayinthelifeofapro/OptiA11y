@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<languages>
+  <language name="German" id="de">
+    <episerver>
+      <shell>
+        <resources>
+          <texts>
+            <aboutepiserver>Über Optimizely</aboutepiserver>
+            <add>Hinzufügen</add>
+            <cancel>Abbrechen</cancel>
+            <close>Schließen</close>
+            <delete>Löschen</delete>
+            <description>Beschreibung</description>
+            <edit>Bearbeiten</edit>
+            <error>Fehler</error>
+            <errormoreinformationtext>Detaillierte Fehlermeldung</errormoreinformationtext>
+            <errormoreinformationtitle>Detaillierte Fehlermeldung anzeigen</errormoreinformationtitle>
+            <help>Hilfe</help>
+            <internalservererror>Interner Serverfehler</internalservererror>
+            <logout>Abmelden</logout>
+            <menu>Menü</menu>
+            <menusearchprovidercategory>Wechseln zu</menusearchprovidercategory>
+            <name>Name</name>
+            <ok>OK</ok>
+            <save>Speichern</save>
+            <saving>Wird gespeichert</saving>
+            <select>Auswählen</select>
+            <settings>Einstellungen</settings>
+            <today>Heute</today>
+            <undo>Rückgängig</undo>
+            <unknowngadget>Unbekanntes Gadget</unknowngadget>
+            <yesterday>Gestern</yesterday>
+          </texts>
+        </resources>
+      </shell>
+    </episerver>
+  </language>
+</languages>

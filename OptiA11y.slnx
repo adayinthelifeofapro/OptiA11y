@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/sample/">
+    <Project Path="sample/OptiA11y.SampleSite/OptiA11y.SampleSite.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/OptiA11y.Rendering/OptiA11y.Rendering.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OptiA11y.Adapters.Tests/OptiA11y.Adapters.Tests.csproj" />
+    <Project Path="tests/OptiA11y.Core.Tests/OptiA11y.Core.Tests.csproj" />
+    <Project Path="tests/OptiA11y.Rendering.Tests/OptiA11y.Rendering.Tests.csproj" />
+  </Folder>
+  <Project Path="src/OptiA11y.Cms/OptiA11y.Cms.csproj" />
+  <Project Path="src/OptiA11y.Core/OptiA11y.Core.csproj" />
+  <Project Path="src/OptiA11y.Saas/OptiA11y.Saas.csproj" />
+</Solution>

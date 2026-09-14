@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<languages>
+  <language name="日本語 (Japanese)" id="ja">
+    <episerver>
+      <shell>
+        <resources>
+          <texts>
+            <aboutepiserver>Optimizely</aboutepiserver>
+            <add>追加</add>
+            <cancel>キャンセル</cancel>
+            <close>閉じる</close>
+            <delete>削除</delete>
+            <description>説明</description>
+            <edit>の編集</edit>
+            <error>エラー</error>
+            <errormoreinformationtext>削除されたエラーメッセージ</errormoreinformationtext>
+            <errormoreinformationtitle>削除されたエラーメッセージを表示する</errormoreinformationtitle>
+            <help>ヘルプ</help>
+            <internalservererror>内部サーバーエラー</internalservererror>
+            <logout>ログアウト</logout>
+            <menu>メニュー</menu>
+            <menusearchprovidercategory>へ移動</menusearchprovidercategory>
+            <name>名前</name>
+            <ok>OK</ok>
+            <save>保存</save>
+            <saving>保存中…</saving>
+            <select>選択</select>
+            <settings>設定</settings>
+            <today>今日</today>
+            <undo>元に戻す</undo>
+            <unknowngadget>未確認のガジェット</unknowngadget>
+            <yesterday>昨日</yesterday>
+          </texts>
+        </resources>
+      </shell>
+    </episerver>
+  </language>
+</languages>

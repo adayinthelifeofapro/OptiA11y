@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Contrast fixture</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    .low-contrast { color: #777777; background-color: #666666; font-size: 16px; }
+    .high-contrast { color: #000000; background-color: #ffffff; font-size: 16px; font-weight: bold; }
+    .justified { text-align: justify; font-size: 16px; }
+    .tiny { font-size: 9px; }
+  </style>
+</head>
+<body>
+  <p class="low-contrast">Low contrast paragraph text</p>
+  <p class="high-contrast">High contrast bold paragraph text</p>
+  <p class="justified">Justified paragraph text that should be flagged for readability</p>
+  <p class="tiny">Tiny paragraph text</p>
+</body>
+</html>

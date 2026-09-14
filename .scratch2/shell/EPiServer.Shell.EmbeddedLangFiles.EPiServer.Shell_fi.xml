@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<languages>
+  <language name="Finnish" id="fi">
+    <episerver>
+      <shell>
+        <resources>
+          <texts>
+            <aboutepiserver>Tietoja Optimizely</aboutepiserver>
+            <add>Lisää</add>
+            <cancel>Peruuta</cancel>
+            <close>Sulje</close>
+            <delete>Poista</delete>
+            <description>Kuvaus</description>
+            <edit>Muokkaa</edit>
+            <error>Virhe</error>
+            <errormoreinformationtext>Tarkka virheviesti</errormoreinformationtext>
+            <errormoreinformationtitle>Näytä tarkka virheviesti</errormoreinformationtitle>
+            <help>Ohje</help>
+            <internalservererror>Palvelimen sisäinen virhe</internalservererror>
+            <logout>Kirjaudu ulos</logout>
+            <menu>Valikko</menu>
+            <menusearchprovidercategory>Siirry kohteeseen</menusearchprovidercategory>
+            <name>Nimi</name>
+            <ok>OK</ok>
+            <save>Tallenna</save>
+            <saving>Tallennus</saving>
+            <select>Valitse</select>
+            <settings>Asetukset</settings>
+            <today>Tänään</today>
+            <undo>Kumoa</undo>
+            <unknowngadget>Tuntematon pienoisohjelma</unknowngadget>
+            <yesterday>Eilen</yesterday>
+          </texts>
+        </resources>
+      </shell>
+    </episerver>
+  </language>
+</languages>

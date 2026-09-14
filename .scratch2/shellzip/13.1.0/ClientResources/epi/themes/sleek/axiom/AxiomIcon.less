@@ -1,0 +1,55 @@
+// Import this file in variables or other Less files where Axiom Icons are used
+//
+// By default, fa-icon inherits the font-size of parent container which is 14px in CMS.
+// According to Axiom design the size of icon is fixed. So we provide 3 mixins
+// for each type of icon: Small icon is 16px, 24px for medium and 32px for large.
+//
+// The default style for small icon is "light", while medium and large icons are "thin".
+// But there are exceptions. Therefore parameter @style is accepted to override the
+// default style.
+
+@import (reference) "icons/less/_mixins";
+@import (reference) "icons/less/light";
+@import (reference) "icons/less/solid";
+@import (reference) "icons/less/thin";
+
+@epi-axiomIcon-size-small: 16px;
+@epi-axiomIcon-size-medium: 24px;
+@epi-axiomIcon-size-large: 32px;
+
+@faLight: "light";
+@faSolid: "solid";
+@faThin: "thin";
+
+.epi-axiomIcon(@name, @style, @size) {
+    .fa-icon;
+    & when (@style = @faSolid) {
+        .fa-solid;
+    }
+    & when (@style = @faLight) {
+        .fa-light;
+    }
+    & when (@style = @faThin) {
+        .fa-thin;
+    }
+    font-size: @size;
+
+    &::before {
+        content: @name;
+        display: inline-block;
+        width: 1.25em;
+        text-align: center;
+    }
+}
+
+.epi-axiomIcon--small(@name, @style: @faLight) {
+    .epi-axiomIcon(@name, @style, @epi-axiomIcon-size-small);
+}
+
+.epi-axiomIcon--medium(@name, @style: @faThin) {
+    .epi-axiomIcon(@name, @style, @epi-axiomIcon-size-medium);
+}
+
+.epi-axiomIcon--large(@name, @style: @faThin) {
+    .epi-axiomIcon(@name, @style, @epi-axiomIcon-size-large);
+}

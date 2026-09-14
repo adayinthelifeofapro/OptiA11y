@@ -1,0 +1,19 @@
+﻿<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Product>OptiA11y</Product>
+    <Authors>OptiA11y</Authors>
+    <Description>Editorial accessibility assistance for Optimizely CMS.</Description>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <Version>0.2.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OptiA11y.Core\OptiA11y.Core.csproj" />
+    <ProjectReference Include="..\OptiA11y.Rendering\OptiA11y.Rendering.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EPiServer.Cms.Core" Version="[13.1.0, 14.0.0)" />
+    <PackageReference Include="EPiServer.Shell" Version="[13.1.0, 14.0.0)" />
+  </ItemGroup>
+
+</Project>
