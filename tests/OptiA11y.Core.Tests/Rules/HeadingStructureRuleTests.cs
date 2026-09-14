@@ -10,11 +10,39 @@ public sealed class HeadingStructureRuleTests
     private readonly HeadingStructureRule _rule = new();
 
     [Fact]
-    public void NoHeadings_ProducesNoFindings()
+    public void NoHeadings_ReportsMissingH1AsNeedsReview()
     {
         var document = new AuditDocument("content-1", Array.Empty<ContentFragment>());
 
-        Assert.Empty(_rule.Evaluate(document));
+        var findings = _rule.Evaluate(document).ToList();
+
+        Assert.Single(findings);
+        Assert.Equal(Confidence.NeedsReview, findings[0].Confidence);
+    }
+
+    [Fact]
+    public void NoH1AmongOtherHeadings_ReportsMissingH1AsNeedsReview()
+    {
+        var headings = new ContentFragment[]
+        {
+            new HeadingFragment(TestLocations.OnMainBody(0), 2, "Section"),
+        };
+        var document = new AuditDocument("content-1", headings);
+
+        var findings = _rule.Evaluate(document).ToList();
+
+        Assert.Contains(findings, f => f.Confidence == Confidence.NeedsReview);
+    }
+
+    [Fact]
+    public void OverlongHeadingText_IsNeedsReview()
+    {
+        var heading = new HeadingFragment(TestLocations.OnMainBody(0), 1, new string('x', 150));
+        var document = new AuditDocument("content-1", new ContentFragment[] { heading });
+
+        var findings = _rule.Evaluate(document).ToList();
+
+        Assert.Contains(findings, f => f.Confidence == Confidence.NeedsReview && f.Message.Contains("body copy"));
     }
 
     [Fact]

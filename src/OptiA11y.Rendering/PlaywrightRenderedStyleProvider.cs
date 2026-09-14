@@ -2,23 +2,15 @@ using Microsoft.Playwright;
 
 namespace OptiA11y.Rendering;
 
-/// <summary>
-/// Captures rendered text styles using headless Chromium via Playwright. This is the only class
-/// in the solution that depends on a real browser engine; everything downstream (fragment
-/// building, rules) stays pure and testable without one.
-///
-/// Requires Playwright's browser binaries to be installed once per machine/build agent via
-/// <c>pwsh bin/Debug/net10.0/playwright.ps1 install chromium</c> (or the equivalent
-/// <c>playwright install chromium</c> CLI call). If the browser cannot be launched, capture
-/// fails soft and returns an empty list so callers can treat this as a best-effort enrichment.
-/// </summary>
 public sealed class PlaywrightRenderedStyleProvider : IRenderedStyleProvider, IAsyncDisposable
 {
+    private const int NarrowViewportWidthPx = 320;
+
     private IPlaywright? _playwright;
     private IBrowser? _browser;
     private readonly SemaphoreSlim _initLock = new(1, 1);
 
-    public async Task<IReadOnlyList<RenderedTextStyle>> CaptureAsync(Uri pageUrl, CancellationToken cancellationToken = default)
+    public async Task<RenderedPageDiagnostics> CaptureAsync(Uri pageUrl, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -28,9 +20,13 @@ public sealed class PlaywrightRenderedStyleProvider : IRenderedStyleProvider, IA
             {
                 await page.GotoAsync(pageUrl.ToString(), new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
-                var results = await page.EvaluateAsync<RenderedTextStyleDto[]>(ExtractionScript);
+                var originalViewport = page.ViewportSize;
 
-                return results
+                // 1. Default-viewport measurements: text styles, interactive-element diagnostics,
+                // and elements with automatic infinite animation.
+                var mainPassResult = await page.EvaluateAsync<MainPassResultDto>(MainPassScript);
+
+                var textStyles = mainPassResult.TextStyles
                     .Where(r => !string.IsNullOrWhiteSpace(r.Text))
                     .Select(r => new RenderedTextStyle(
                         r.Text.Trim(),
@@ -38,8 +34,28 @@ public sealed class PlaywrightRenderedStyleProvider : IRenderedStyleProvider, IA
                         r.BackgroundColor,
                         r.FontSizePx,
                         r.FontWeight,
-                        r.TextAlign))
+                        r.TextAlign,
+                        r.HasBackgroundImage))
                     .ToList();
+
+                var elements = mainPassResult.Elements
+                    .Select(e => new RenderedElementDiagnostics(e.Description, e.WidthPx, e.HeightPx, e.HasVisibleFocusIndicator))
+                    .ToList();
+
+                var animatedElementDescriptions = mainPassResult.AnimatedElementDescriptions.ToList();
+
+                // 2. Reflow: resize to a 320px-equivalent viewport and check for horizontal
+                // overflow, then restore the original viewport.
+                await page.SetViewportSizeAsync(NarrowViewportWidthPx, originalViewport?.Height ?? 720);
+                var overflowsAtNarrowViewport = await page.EvaluateAsync<bool>(ReflowCheckScript);
+                await page.SetViewportSizeAsync(originalViewport?.Width ?? 1280, originalViewport?.Height ?? 720);
+
+                // 3. Text spacing: inject the WCAG 1.4.12 reference overrides and check which
+                // text samples clip as a result.
+                await page.AddStyleTagAsync(new PageAddStyleTagOptions { Content = TextSpacingOverrideCss });
+                var textSpacingClippedSamples = (await page.EvaluateAsync<string[]>(TextSpacingCheckScript)).ToList();
+
+                return new RenderedPageDiagnostics(textStyles, elements, animatedElementDescriptions, overflowsAtNarrowViewport, textSpacingClippedSamples);
             }
             finally
             {
@@ -50,7 +66,7 @@ public sealed class PlaywrightRenderedStyleProvider : IRenderedStyleProvider, IA
         {
             // Rendering is a best-effort enrichment; any failure (browser unavailable,
             // navigation timeout, unreachable URL) should not fail the whole audit.
-            return Array.Empty<RenderedTextStyle>();
+            return RenderedPageDiagnostics.Empty;
         }
     }
 
@@ -84,10 +100,10 @@ public sealed class PlaywrightRenderedStyleProvider : IRenderedStyleProvider, IA
         _playwright?.Dispose();
     }
 
-    // Walks visible text nodes, resolving the computed foreground color, the nearest opaque
-    // ancestor background, font size, font weight, and text-align for each. Kept as a single
-    // inline script (rather than multiple round-trips) for performance on content-heavy pages.
-    private const string ExtractionScript = """
+    // Walks visible text nodes (for contrast/readability) and a fixed set of interactive
+    // element candidates (for target-size/focus-indicator), plus a full-page animation scan
+    // (for motion), all in one round trip for performance on content-heavy pages.
+    private const string MainPassScript = """
         () => {
             function isVisible(el) {
                 const style = window.getComputedStyle(el);
@@ -100,18 +116,22 @@ public sealed class PlaywrightRenderedStyleProvider : IRenderedStyleProvider, IA
 
             function effectiveBackground(el) {
                 let node = el;
+                let hasImage = false;
                 while (node) {
                     const style = window.getComputedStyle(node);
+                    if (style.backgroundImage && style.backgroundImage !== 'none') {
+                        hasImage = true;
+                    }
                     const bg = style.backgroundColor;
                     if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
-                        return bg;
+                        return { color: bg, hasImage: hasImage };
                     }
                     node = node.parentElement;
                 }
-                return 'rgb(255, 255, 255)';
+                return { color: 'rgb(255, 255, 255)', hasImage: hasImage };
             }
 
-            const results = [];
+            const textStyles = [];
             const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
             let node;
             while ((node = walker.nextNode())) {
@@ -124,26 +144,153 @@ public sealed class PlaywrightRenderedStyleProvider : IRenderedStyleProvider, IA
                     continue;
                 }
                 const style = window.getComputedStyle(el);
-                results.push({
+                const background = effectiveBackground(el);
+                textStyles.push({
                     text: text,
                     color: style.color,
-                    backgroundColor: effectiveBackground(el),
+                    backgroundColor: background.color,
+                    hasBackgroundImage: background.hasImage,
                     fontSizePx: parseFloat(style.fontSize) || 0,
                     fontWeight: style.fontWeight,
                     textAlign: style.textAlign
                 });
             }
-            return results;
+
+            function describe(el) {
+                const name = (el.textContent || el.getAttribute('aria-label') || el.getAttribute('alt') || '').trim().slice(0, 40);
+                return '<' + el.tagName.toLowerCase() + '> "' + name + '"';
+            }
+
+            const focusProperties = ['outlineStyle', 'outlineWidth', 'outlineColor', 'boxShadow', 'backgroundColor', 'borderColor'];
+            const previouslyFocused = document.activeElement;
+            const elements = [];
+            const candidates = document.querySelectorAll('a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]');
+            for (const el of candidates) {
+                if (!isVisible(el)) {
+                    continue;
+                }
+
+                const computedDisplay = window.getComputedStyle(el).display;
+                const isInlineExempt = computedDisplay.indexOf('inline') === 0 && computedDisplay !== 'inline-block';
+                const isNativeCheckboxOrRadioExempt = el.tagName === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio');
+                const isTargetSizeExempt = isInlineExempt || isNativeCheckboxOrRadioExempt;
+
+                const rect = el.getBoundingClientRect();
+                const widthPx = isTargetSizeExempt ? 9999 : rect.width;
+                const heightPx = isTargetSizeExempt ? 9999 : rect.height;
+
+                const restingStyle = window.getComputedStyle(el);
+                const restingSnapshot = focusProperties.map(p => restingStyle[p]);
+                el.focus({ preventScroll: true });
+                const focusedStyle = window.getComputedStyle(el);
+                const focusedSnapshot = focusProperties.map(p => focusedStyle[p]);
+                el.blur();
+
+                const hasVisibleFocusIndicator = restingSnapshot.some((value, i) => value !== focusedSnapshot[i]);
+
+                elements.push({
+                    description: describe(el),
+                    widthPx: widthPx,
+                    heightPx: heightPx,
+                    hasVisibleFocusIndicator: hasVisibleFocusIndicator
+                });
+            }
+            if (previouslyFocused && previouslyFocused.focus) {
+                previouslyFocused.focus({ preventScroll: true });
+            }
+
+            const animatedElementDescriptions = [];
+            for (const el of document.querySelectorAll('*')) {
+                const style = window.getComputedStyle(el);
+                if (style.animationName && style.animationName !== 'none'
+                    && style.animationIterationCount === 'infinite'
+                    && style.animationPlayState !== 'paused'
+                    && isVisible(el)) {
+                    animatedElementDescriptions.push(describe(el));
+                }
+            }
+
+            return {
+                textStyles: textStyles,
+                elements: elements,
+                animatedElementDescriptions: animatedElementDescriptions
+            };
         }
         """;
+
+    private const string ReflowCheckScript = """
+        () => document.documentElement.scrollWidth > window.innerWidth
+        """;
+
+    // The WCAG 1.4.12 reference stylesheet overrides: line height to 1.5x font size, spacing
+    // between paragraphs to 2x font size, letter spacing to 0.12x font size, and word spacing to
+    // 0.16x font size.
+    private const string TextSpacingOverrideCss = """
+        * {
+            line-height: 1.5 !important;
+            letter-spacing: 0.12em !important;
+            word-spacing: 0.16em !important;
+        }
+        p {
+            margin-top: 2em !important;
+            margin-bottom: 2em !important;
+        }
+        """;
+
+    // Re-walks visible text nodes after the overrides are applied and reports any whose parent
+    // element clips its content (overflow hidden with content taller/wider than the box).
+    private const string TextSpacingCheckScript = """
+        () => {
+            const clipped = [];
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+            let node;
+            while ((node = walker.nextNode())) {
+                const text = node.textContent ? node.textContent.trim() : '';
+                if (!text) {
+                    continue;
+                }
+                const el = node.parentElement;
+                if (!el) {
+                    continue;
+                }
+                const style = window.getComputedStyle(el);
+                const rect = el.getBoundingClientRect();
+                if (rect.width === 0 || rect.height === 0) {
+                    continue;
+                }
+                const overflowsVertically = el.scrollHeight > el.clientHeight + 1 && (style.overflowY === 'hidden' || style.overflow === 'hidden');
+                const overflowsHorizontally = el.scrollWidth > el.clientWidth + 1 && (style.overflowX === 'hidden' || style.overflow === 'hidden');
+                if (overflowsVertically || overflowsHorizontally) {
+                    clipped.push(text);
+                }
+            }
+            return clipped;
+        }
+        """;
+
+    private sealed class MainPassResultDto
+    {
+        public RenderedTextStyleDto[] TextStyles { get; set; } = Array.Empty<RenderedTextStyleDto>();
+        public RenderedElementDto[] Elements { get; set; } = Array.Empty<RenderedElementDto>();
+        public string[] AnimatedElementDescriptions { get; set; } = Array.Empty<string>();
+    }
 
     private sealed class RenderedTextStyleDto
     {
         public string Text { get; set; } = string.Empty;
         public string Color { get; set; } = string.Empty;
         public string BackgroundColor { get; set; } = string.Empty;
+        public bool HasBackgroundImage { get; set; }
         public double FontSizePx { get; set; }
         public string FontWeight { get; set; } = string.Empty;
         public string TextAlign { get; set; } = string.Empty;
+    }
+
+    private sealed class RenderedElementDto
+    {
+        public string Description { get; set; } = string.Empty;
+        public double WidthPx { get; set; }
+        public double HeightPx { get; set; }
+        public bool HasVisibleFocusIndicator { get; set; }
     }
 }

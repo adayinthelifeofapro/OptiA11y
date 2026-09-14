@@ -4,35 +4,21 @@ using OptiA11y.Core.Parsing;
 
 namespace OptiA11y.Rendering;
 
-/// <summary>
-/// Converts <see cref="RenderedTextStyle"/> entries captured by an <see cref="IRenderedStyleProvider"/>
-/// into the same <see cref="ColorContrastFragment"/>/<see cref="TextStyleFragment"/> shapes that
-/// <c>HtmlFragmentParser</c> produces from inline styles, so the existing
-/// <c>ColorContrastRule</c>/<c>TextReadabilityRule</c> can evaluate rendered, real-world styles
-/// without any changes to the rule layer. This is a pure function - no browser dependency - kept
-/// in <c>OptiA11y.Rendering</c> (rather than Core) because it consumes <see cref="RenderedTextStyle"/>,
-/// which Core has no reason to know about.
-/// </summary>
 public static class RenderedStyleFragmentBuilder
 {
     private const double LargeTextNormalWeightPx = 24;
     private const double LargeTextBoldWeightPx = 18.66;
+    private const double MinimumTargetSizePx = 24;
 
-    /// <summary>
-    /// Builds contrast and text-style fragments from rendered text styles. <paramref name="location"/>
-    /// is used as the base location for every fragment produced; ordinals are assigned sequentially
-    /// starting at <paramref name="startingOrdinal"/> so callers can append these after any fragments
-    /// already produced for the same content item.
-    /// </summary>
     public static IReadOnlyList<ContentFragment> Build(
-        IReadOnlyList<RenderedTextStyle> renderedStyles,
+        RenderedPageDiagnostics diagnostics,
         SourceLocation location,
         int startingOrdinal = 0)
     {
         var fragments = new List<ContentFragment>();
         var ordinal = startingOrdinal;
 
-        foreach (var style in renderedStyles)
+        foreach (var style in diagnostics.TextStyles)
         {
             if (ColorContrastCalculator.TryParseColor(style.Color, out var fg)
                 && ColorContrastCalculator.TryParseColor(style.BackgroundColor, out var bg))
@@ -49,7 +35,8 @@ public static class RenderedStyleFragmentBuilder
                     style.BackgroundColor,
                     ratio,
                     isLargeText,
-                    Truncate(style.Text)));
+                    Truncate(style.Text),
+                    style.HasBackgroundImage));
             }
 
             var isJustified = string.Equals(style.TextAlign, "justify", StringComparison.OrdinalIgnoreCase);
@@ -63,6 +50,40 @@ public static class RenderedStyleFragmentBuilder
                     style.FontSizePx > 0 ? style.FontSizePx : null,
                     Truncate(style.Text)));
             }
+        }
+
+        foreach (var element in diagnostics.Elements)
+        {
+            if (element.WidthPx < MinimumTargetSizePx || element.HeightPx < MinimumTargetSizePx)
+            {
+                fragments.Add(new TargetSizeFragment(
+                    location with { Ordinal = ordinal++ },
+                    element.Description,
+                    element.WidthPx,
+                    element.HeightPx));
+            }
+
+            if (!element.HasVisibleFocusIndicator)
+            {
+                fragments.Add(new FocusIndicatorFragment(
+                    location with { Ordinal = ordinal++ },
+                    element.Description));
+            }
+        }
+
+        foreach (var description in diagnostics.AnimatedElementDescriptions)
+        {
+            fragments.Add(new MotionFragment(location with { Ordinal = ordinal++ }, description));
+        }
+
+        if (diagnostics.OverflowsAtNarrowViewport)
+        {
+            fragments.Add(new ReflowFragment(location with { Ordinal = ordinal++ }));
+        }
+
+        foreach (var sample in diagnostics.TextSpacingClippedSamples)
+        {
+            fragments.Add(new TextSpacingFragment(location with { Ordinal = ordinal++ }, Truncate(sample)));
         }
 
         return fragments;

@@ -27,7 +27,10 @@ public sealed class PaasContentAdapter : IContentAuditDocumentAdapter
             return null;
         }
 
-        var fragments = new List<ContentFragment>();
+        var fragments = new List<ContentFragment>
+        {
+            new PageMetadataFragment(SourceLocation.OnProperty(root.ContentReference, "Name"), root.DisplayName)
+        };
         CollectFragments(root, blockPath: Array.Empty<string>(), fragments);
 
         return new AuditDocument(contentReference, fragments);

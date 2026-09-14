@@ -83,4 +83,21 @@ public sealed class PaasContentAdapterTests
         Assert.Equal(new[] { "MainContentArea:TeaserBlock" }, image.Location.BlockPath);
         Assert.Null(image.AltText);
     }
+
+    [Fact]
+    public async Task BuildAsync_ExtractsRootDisplayName_AsPageMetadataFragment()
+    {
+        var root = new PaasContentNode(
+            "page-1",
+            BlockName: null,
+            Properties: Array.Empty<PaasProperty>(),
+            DisplayName: "Contact us");
+
+        var adapter = new PaasContentAdapter(new FakePaasContentLoader(root));
+        var document = await adapter.BuildAsync("page-1", CancellationToken.None);
+
+        Assert.NotNull(document);
+        var metadata = document!.Get<PageMetadataFragment>().Single();
+        Assert.Equal("Contact us", metadata.DisplayName);
+    }
 }

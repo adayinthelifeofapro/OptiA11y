@@ -14,6 +14,10 @@ public sealed class SaasContentResponse
     [JsonPropertyName("contentLink")]
     public string ContentLink { get; set; } = string.Empty;
 
+    /// <summary>The content item's display name, used by OptiA11y.Core.Rules.PageTitle.PageTitleRule.</summary>
+    [JsonPropertyName("displayName")]
+    public string? DisplayName { get; set; }
+
     [JsonPropertyName("properties")]
     public List<SaasContentProperty> Properties { get; set; } = new();
 }

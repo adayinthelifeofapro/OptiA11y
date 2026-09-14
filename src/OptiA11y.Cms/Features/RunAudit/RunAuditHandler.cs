@@ -86,14 +86,14 @@ public sealed class RunAuditHandler
             return document;
         }
 
-        var renderedStyles = await _renderedStyleProvider.CaptureAsync(previewUrl, cancellationToken);
-        if (renderedStyles.Count == 0)
+        var diagnostics = await _renderedStyleProvider.CaptureAsync(previewUrl, cancellationToken);
+        if (diagnostics.IsEmpty)
         {
             return document;
         }
 
         var location = SourceLocation.OnProperty(document.ContentReference, RenderedStylesPropertyName);
-        var renderedFragments = RenderedStyleFragmentBuilder.Build(renderedStyles, location);
+        var renderedFragments = RenderedStyleFragmentBuilder.Build(diagnostics, location);
 
         var combinedFragments = document.Fragments.Concat(renderedFragments).ToList();
         return new AuditDocument(document.ContentReference, combinedFragments);

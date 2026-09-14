@@ -11,6 +11,11 @@ namespace OptiA11y.Core.Model.Fragments;
 /// form control), used to detect elements that are both interactive and hidden from assistive
 /// technology.
 /// </param>
+/// <param name="IsNestedInInteractiveAncestor">
+/// True when this natively interactive element has a natively interactive ancestor (e.g. a
+/// button nested inside a link), which is an invalid interaction model regardless of markup
+/// intent.
+/// </param>
 public sealed record InteractiveAttributesFragment(
     SourceLocation Location,
     string TagName,
@@ -18,4 +23,5 @@ public sealed record InteractiveAttributesFragment(
     bool AriaHidden,
     string? Role,
     string? AccessKey,
-    bool IsNativelyInteractive) : ContentFragment(Location);
+    bool IsNativelyInteractive,
+    bool IsNestedInInteractiveAncestor = false) : ContentFragment(Location);
