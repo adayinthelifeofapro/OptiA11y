@@ -11,9 +11,15 @@
 
   <PropertyGroup>
     <Product>OptiA11y</Product>
-    <Authors>OptiA11y</Authors>
+    <Authors>adayinthelifeofapro</Authors>
     <Description>Editorial accessibility assistance for Optimizely CMS.</Description>
     <Version>0.1.0</Version>
+    <Copyright>Copyright (c) 2026 adayinthelifeofapro</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/adayinthelifeofapro/OptiA11y</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/adayinthelifeofapro/OptiA11y</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>accessibility;a11y;wcag;optimizely;cms;editorial</PackageTags>
   </PropertyGroup>
 
 </Project>
