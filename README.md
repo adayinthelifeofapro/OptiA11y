@@ -129,9 +129,6 @@ the host solution. Install the package and it self-registers via:
   services (rule set, rule engine, RunAudit handler, and a real `IContentLoader`-backed
   `EPiServerPaasContentLoader`) into the host's DI container automatically during EPiServer's
   initialization pipeline.
-- `Infrastructure/Navigation/OptiA11yNavigation.cs` - an `IMenuProvider` implementation decorated
-  with `[MenuProvider]`, which the CMS shell discovers automatically and uses to add the
-  "Accessibility audit" entry to the editor menu.
 - `Infrastructure/Navigation/OptiA11yAuditPanelPlugin.cs` - registers an in-context editor panel
   (an iframe-based view) so editors can view accessibility findings for the page they are
   currently editing, without leaving the edit view.

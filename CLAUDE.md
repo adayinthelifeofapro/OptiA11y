@@ -91,7 +91,6 @@ of it:
 - `Infrastructure/OptiA11yStartupFilter.cs` — `IStartupFilter` that maps both endpoints, so hosts
   never call `MapRunAuditEndpoint()` themselves (the sample site does, because it has no EPiServer
   initialization pipeline).
-- `Infrastructure/Navigation/OptiA11yNavigation.cs` — `[MenuProvider]`, auto-discovered by the shell.
 - `Infrastructure/Navigation/OptiA11yAuditPanelPlugin.cs` + `RelativeUrlIFrameComponentAttribute.cs`
   — in-context editor panel in the assets pane. The shell's `IFrameContextComponent` appends the
   current editor context as an `id` query parameter and reloads on context change; that is why
