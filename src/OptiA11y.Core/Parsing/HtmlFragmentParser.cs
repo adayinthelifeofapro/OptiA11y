@@ -81,6 +81,88 @@ public static class HtmlFragmentParser
         "aria-valuetext"
     };
 
+    // Roles with a required set of owned elements per the ARIA spec, and the description used in
+    // findings when a required owned element is missing. Scoped to a small, well-established
+    // subset rather than the full specification. Matching is direct-or-descendant to tolerate
+    // wrapper elements (e.g. a <ul> between a role="tablist" and its role="tab" children).
+    private static readonly (string Role, string RequiredOwnedRole, string Description)[] RoleRequiredOwnedElements =
+    {
+        ("list", "listitem", "listitem"),
+        ("listbox", "option", "option"),
+        ("menu", "menuitem", "menuitem"),
+        ("menubar", "menuitem", "menuitem"),
+        ("radiogroup", "radio", "radio"),
+        ("tablist", "tab", "tab"),
+        ("table", "row", "row"),
+        ("grid", "row", "row"),
+        ("rowgroup", "row", "row"),
+        ("row", "cell", "cell/gridcell/columnheader/rowheader")
+    };
+
+    // Roles with required state/property attributes per the ARIA spec. Scoped to a small,
+    // well-established subset.
+    private static readonly (string Role, string[] RequiredAttributes)[] RoleRequiredAttributesTable =
+    {
+        ("checkbox", new[] { "aria-checked" }),
+        ("combobox", new[] { "aria-expanded" }),
+        ("scrollbar", new[] { "aria-valuenow" }),
+        ("slider", new[] { "aria-valuenow" }),
+        ("spinbutton", new[] { "aria-valuenow" }),
+        ("switch", new[] { "aria-checked" })
+    };
+
+    // Widget-state attributes and the roles that support them, per the ARIA spec. An element with
+    // one of these attributes whose role isn't in the allowed set is misusing a valid ARIA
+    // attribute - scoped to this small, well-established subset rather than the full
+    // ARIA-in-HTML attribute-allowance tables.
+    private static readonly (string Attribute, string[] AllowedRoles)[] WidgetStateAttributeAllowedRoles =
+    {
+        ("aria-checked", new[] { "checkbox", "radio", "switch", "menuitemcheckbox", "menuitemradio", "treeitem", "option" }),
+        ("aria-selected", new[] { "option", "row", "tab", "gridcell", "rowheader", "columnheader", "treeitem" }),
+        ("aria-expanded", new[] { "button", "combobox", "link", "tab", "treeitem", "row", "gridcell", "rowheader", "columnheader" }),
+        ("aria-pressed", new[] { "button" })
+    };
+
+    // The element's implicit ARIA role by tag name, used to detect a role="..." attribute that
+    // merely duplicates the element's native semantics (redundant-role) and to identify landmark
+    // elements that don't carry an explicit role attribute.
+    private static readonly Dictionary<string, string> ImplicitRoleByTag = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["button"] = "button",
+        ["a"] = "link",
+        ["nav"] = "navigation",
+        ["main"] = "main",
+        ["header"] = "banner",
+        ["footer"] = "contentinfo",
+        ["aside"] = "complementary",
+        ["form"] = "form",
+        ["table"] = "table",
+        ["ul"] = "list",
+        ["ol"] = "list",
+        ["li"] = "listitem",
+        ["img"] = "img",
+        ["dialog"] = "dialog",
+        ["article"] = "article",
+        ["progress"] = "progressbar",
+        ["select"] = "listbox",
+        ["textarea"] = "textbox"
+    };
+
+    private static readonly HashSet<string> LandmarkRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "main", "banner", "navigation", "contentinfo", "complementary", "search", "form", "region"
+    };
+
+    private static readonly HashSet<string> ValidLivePolitenessValues = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "off", "polite", "assertive"
+    };
+
+    private static readonly HashSet<string> LiveRegionRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "status", "alert", "log", "marquee", "timer"
+    };
+
     // Keyword -> WCAG 1.3.5 autocomplete-token category, used only to make an educated guess that
     // a field is a common identity field worth an autocomplete attribute. Deliberately a heuristic
     // signal: naming conventions vary too much for this to be a structural fact.
@@ -97,6 +179,7 @@ public static class HtmlFragmentParser
         ("bday", new[] { "birthdate", "dob", "dateofbirth", "birthday" }),
         ("organization", new[] { "company", "organization", "organisation" })
     };
+
 
     public static IEnumerable<ContentFragment> Parse(string html, SourceLocation baseLocation)
     {
@@ -118,8 +201,18 @@ public static class HtmlFragmentParser
                     yield return BuildImageFragment(node, baseLocation, ordinal++);
                     break;
 
+                case "figure":
+                    yield return BuildFigureFragment(node, baseLocation, ordinal++);
+                    break;
+
                 case "a":
                     yield return BuildLinkFragment(node, baseLocation, ordinal++);
+                    var skipLink = TryBuildSkipLinkFragment(node, baseLocation, ordinal);
+                    if (skipLink is not null)
+                    {
+                        ordinal++;
+                        yield return skipLink;
+                    }
                     break;
 
                 case "h1" or "h2" or "h3" or "h4" or "h5" or "h6":
@@ -150,6 +243,15 @@ public static class HtmlFragmentParser
 
                 case "ul" or "ol":
                     yield return BuildListStructureFragment(node, baseLocation, ordinal++);
+                    break;
+
+                case "dl":
+                    var definitionList = TryBuildDefinitionListFragment(node, baseLocation, ordinal);
+                    if (definitionList is not null)
+                    {
+                        ordinal++;
+                        yield return definitionList;
+                    }
                     break;
 
                 case "p" or "div" or "span":
@@ -184,6 +286,24 @@ public static class HtmlFragmentParser
                 case "fieldset":
                     yield return BuildFieldsetFragment(node, baseLocation, ordinal++);
                     break;
+
+                case "blockquote" or "sup" or "sub" or "b" or "i":
+                    var markupSpan = TryBuildMarkupSpanFragment(node, baseLocation, ordinal);
+                    if (markupSpan is not null)
+                    {
+                        ordinal++;
+                        yield return markupSpan;
+                    }
+                    break;
+
+                case "meta":
+                    if (string.Equals(node.GetAttributeValue("http-equiv", string.Empty), "refresh", StringComparison.OrdinalIgnoreCase))
+                    {
+                        yield return new MetaRefreshFragment(
+                            baseLocation with { Ordinal = ordinal++ },
+                            node.GetAttributeValue("content", string.Empty));
+                    }
+                    break;
             }
 
             if (DeprecatedElementNames.Contains(node.Name))
@@ -214,6 +334,20 @@ public static class HtmlFragmentParser
                     yield return textStyleFragment;
                 }
 
+                var positionedContentFragment = TryBuildPositionedContentFragment(node, baseLocation, ordinal);
+                if (positionedContentFragment is not null)
+                {
+                    ordinal++;
+                    yield return positionedContentFragment;
+                }
+
+                var blinkingContentFragment = TryBuildBlinkingContentFragment(node, baseLocation, ordinal);
+                if (blinkingContentFragment is not null)
+                {
+                    ordinal++;
+                    yield return blinkingContentFragment;
+                }
+
                 var textFragment = TryBuildTextFragment(node, baseLocation, ordinal);
                 if (textFragment is not null)
                 {
@@ -234,12 +368,54 @@ public static class HtmlFragmentParser
                     yield return ariaReferenceFragment;
                 }
                 ordinal += ariaReferenceFragments.Count;
+
+                var ariaSemanticsFragment = TryBuildAriaSemanticsFragment(node, baseLocation, ordinal);
+                if (ariaSemanticsFragment is not null)
+                {
+                    ordinal++;
+                    yield return ariaSemanticsFragment;
+                }
+
+                var landmarkFragment = TryBuildLandmarkFragment(node, baseLocation, ordinal);
+                if (landmarkFragment is not null)
+                {
+                    ordinal++;
+                    yield return landmarkFragment;
+                }
+
+                var liveRegionFragment = TryBuildLiveRegionFragment(node, baseLocation, ordinal);
+                if (liveRegionFragment is not null)
+                {
+                    ordinal++;
+                    yield return liveRegionFragment;
+                }
+
+                var lineBreakRunFragment = TryBuildLineBreakRunFragment(node, baseLocation, ordinal);
+                if (lineBreakRunFragment is not null)
+                {
+                    ordinal++;
+                    yield return lineBreakRunFragment;
+                }
+
+                var nonTextContrastFragment = TryBuildNonTextContrastFragment(node, baseLocation, ordinal);
+                if (nonTextContrastFragment is not null)
+                {
+                    ordinal++;
+                    yield return nonTextContrastFragment;
+                }
             }
         }
 
-        foreach (var radioGroup in DetectOrphanRadioGroups(doc, baseLocation, ordinal))
+        var radioGroupFragments = DetectOrphanRadioGroups(doc, baseLocation, ordinal).ToList();
+        foreach (var radioGroup in radioGroupFragments)
         {
             yield return radioGroup;
+        }
+        ordinal += radioGroupFragments.Count;
+
+        foreach (var duplicateId in DetectDuplicateIds(doc, baseLocation, ordinal))
+        {
+            yield return duplicateId;
         }
     }
 
@@ -287,6 +463,65 @@ public static class HtmlFragmentParser
             sampleText);
     }
 
+    private static NonTextContrastFragment? TryBuildNonTextContrastFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var style = node.GetAttributeValue("style", string.Empty);
+        if (string.IsNullOrWhiteSpace(style))
+        {
+            return null;
+        }
+
+        var borderColor = ExtractStyleProperty(style, "border-color");
+        var fillColor = ExtractStyleProperty(style, "fill");
+        var foreground = borderColor ?? fillColor;
+        if (foreground is null || !ColorContrastCalculator.TryParseColor(foreground, out var fg))
+        {
+            return null;
+        }
+
+        // Only meaningful for elements that don't also carry their own text/background contrast
+        // check - a border on a plain box or an icon's fill, not a bordered text block.
+        var directText = HtmlEntity.DeEntitize(GetOwnText(node)).Trim();
+        if (!string.IsNullOrWhiteSpace(directText))
+        {
+            return null;
+        }
+
+        // Default to white when no ancestor sets an explicit background - a documented
+        // assumption, not a guarantee (see NonTextContrastFragment's doc comment).
+        var background = "#ffffff";
+        for (var current = node.ParentNode; current is not null; current = current.ParentNode)
+        {
+            var ancestorStyle = current.GetAttributeValue("style", string.Empty);
+            if (string.IsNullOrWhiteSpace(ancestorStyle))
+            {
+                continue;
+            }
+
+            var ancestorBackground = ExtractStyleProperty(ancestorStyle, "background-color") ?? ExtractStyleProperty(ancestorStyle, "background");
+            if (ancestorBackground is not null)
+            {
+                background = ancestorBackground;
+                break;
+            }
+        }
+
+        if (!ColorContrastCalculator.TryParseColor(background, out var bg))
+        {
+            return null;
+        }
+
+        var ratio = ColorContrastCalculator.ComputeContrastRatio(fg, bg);
+        var description = $"<{node.Name}>{(node.Attributes.Contains("class") ? $".{node.GetAttributeValue("class", string.Empty)}" : string.Empty)}";
+
+        return new NonTextContrastFragment(
+            baseLocation with { Ordinal = ordinal },
+            foreground,
+            background,
+            ratio,
+            description);
+    }
+
     private static TextStyleFragment? TryBuildTextStyleFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
     {
         var style = node.GetAttributeValue("style", string.Empty);
@@ -297,6 +532,9 @@ public static class HtmlFragmentParser
 
         var textAlign = ExtractStyleProperty(style, "text-align");
         var fontSize = ParsePixelValue(ExtractStyleProperty(style, "font-size"));
+        var width = ParsePixelValue(ExtractStyleProperty(style, "width"));
+        var lineHeight = ParseUnitlessNumber(ExtractStyleProperty(style, "line-height"));
+        var hasBackgroundImage = !string.IsNullOrWhiteSpace(ExtractStyleProperty(style, "background-image"));
 
         var directText = HtmlEntity.DeEntitize(GetOwnText(node)).Trim();
         if (string.IsNullOrWhiteSpace(directText))
@@ -306,8 +544,10 @@ public static class HtmlFragmentParser
 
         var isJustified = string.Equals(textAlign, "justify", StringComparison.OrdinalIgnoreCase);
         var isTiny = fontSize is < 12;
+        var isWide = width is > 900;
+        var isTightLineHeight = lineHeight is < 1.5;
 
-        if (!isJustified && !isTiny)
+        if (!isJustified && !isTiny && !isWide && !isTightLineHeight && !hasBackgroundImage)
         {
             return null;
         }
@@ -318,11 +558,73 @@ public static class HtmlFragmentParser
             baseLocation with { Ordinal = ordinal },
             textAlign,
             fontSize,
+            sampleText,
+            width,
+            lineHeight,
+            hasBackgroundImage);
+    }
+
+    private static PositionedContentFragment? TryBuildPositionedContentFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var style = node.GetAttributeValue("style", string.Empty);
+        if (string.IsNullOrWhiteSpace(style))
+        {
+            return null;
+        }
+
+        var position = ExtractStyleProperty(style, "position");
+        var floatValue = ExtractStyleProperty(style, "float");
+
+        var isPositioned = position is "absolute" or "fixed";
+        var isFloated = floatValue is "left" or "right";
+
+        if (!isPositioned && !isFloated)
+        {
+            return null;
+        }
+
+        var directText = HtmlEntity.DeEntitize(GetOwnText(node)).Trim();
+        if (string.IsNullOrWhiteSpace(directText))
+        {
+            return null;
+        }
+
+        var sampleText = directText.Length > 60 ? directText[..60] : directText;
+
+        return new PositionedContentFragment(
+            baseLocation with { Ordinal = ordinal },
+            position ?? "static",
+            floatValue,
             sampleText);
     }
 
     private static string GetOwnText(HtmlNode node) =>
         string.Concat(node.ChildNodes.Where(c => c.NodeType == HtmlNodeType.Text).Select(c => c.InnerText));
+
+    private static BlinkingContentFragment? TryBuildBlinkingContentFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var isDeprecatedBlinkTag = string.Equals(node.Name, "blink", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(node.Name, "marquee", StringComparison.OrdinalIgnoreCase);
+
+        var style = node.GetAttributeValue("style", string.Empty);
+        var textDecoration = ExtractStyleProperty(style, "text-decoration");
+        var animationName = ExtractStyleProperty(style, "animation") ?? ExtractStyleProperty(style, "animation-name");
+
+        var hasBlinkStyle = (textDecoration?.Contains("blink", StringComparison.OrdinalIgnoreCase) ?? false)
+            || (animationName?.Contains("blink", StringComparison.OrdinalIgnoreCase) ?? false);
+
+        if (!isDeprecatedBlinkTag && !hasBlinkStyle)
+        {
+            return null;
+        }
+
+        var directText = HtmlEntity.DeEntitize(GetOwnText(node)).Trim();
+        var description = directText.Length > 0
+            ? $"<{node.Name}> \"{(directText.Length > 40 ? directText[..40] : directText)}\""
+            : $"<{node.Name}>";
+
+        return new BlinkingContentFragment(baseLocation with { Ordinal = ordinal }, description);
+    }
 
     private static string? ExtractStyleProperty(string style, string propertyName)
     {
@@ -360,6 +662,19 @@ public static class HtmlFragmentParser
         return null;
     }
 
+    private static double? ParseUnitlessNumber(string? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        value = value.Trim();
+        return double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)
+            ? number
+            : null;
+    }
+
     private static ListStructureFragment BuildListStructureFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
     {
         var itemCount = node.Elements("li").Count();
@@ -369,11 +684,71 @@ public static class HtmlFragmentParser
             sampleText = sampleText[..80];
         }
 
+        var hasNonListItemChild = node.ChildNodes
+            .Any(child => child.NodeType == HtmlNodeType.Element && !string.Equals(child.Name, "li", StringComparison.OrdinalIgnoreCase));
+
         return new ListStructureFragment(
             baseLocation with { Ordinal = ordinal },
             "list",
             itemCount,
-            sampleText);
+            sampleText,
+            hasNonListItemChild);
+    }
+
+    private static MarkupSpanFragment? TryBuildMarkupSpanFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var text = HtmlEntity.DeEntitize(node.InnerText ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var hasCitation = node.Name == "blockquote"
+            && (node.Attributes.Contains("cite") || node.Descendants("cite").Any());
+
+        return new MarkupSpanFragment(
+            baseLocation with { Ordinal = ordinal },
+            node.Name,
+            text,
+            hasCitation);
+    }
+
+    private static DefinitionListFragment? TryBuildDefinitionListFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var children = node.ChildNodes
+            .Where(c => c.NodeType == HtmlNodeType.Element && (c.Name is "dt" or "dd"))
+            .ToList();
+
+        if (children.Count == 0)
+        {
+            return null;
+        }
+
+        var descriptionBeforeTerm = false;
+        var seenTerm = false;
+        var hasOrphanedTerm = false;
+
+        for (var i = 0; i < children.Count; i++)
+        {
+            if (children[i].Name == "dt")
+            {
+                seenTerm = true;
+                var next = i + 1 < children.Count ? children[i + 1] : null;
+                if (next is null || next.Name != "dd")
+                {
+                    hasOrphanedTerm = true;
+                }
+            }
+            else if (children[i].Name == "dd" && !seenTerm)
+            {
+                descriptionBeforeTerm = true;
+            }
+        }
+
+        return new DefinitionListFragment(
+            baseLocation with { Ordinal = ordinal },
+            hasOrphanedTerm,
+            descriptionBeforeTerm);
     }
 
     private static ListStructureFragment? TryBuildFakeListFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
@@ -497,6 +872,24 @@ public static class HtmlFragmentParser
             isInsideLinkWithText);
     }
 
+    private static FigureFragment BuildFigureFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var img = node.Descendants("img").FirstOrDefault();
+        var altText = img is not null && img.Attributes.Contains("alt")
+            ? img.GetAttributeValue("alt", string.Empty)
+            : null;
+
+        var captionNode = node.Descendants("figcaption").FirstOrDefault();
+        var caption = captionNode is not null
+            ? HtmlEntity.DeEntitize(captionNode.InnerText ?? string.Empty).Trim()
+            : null;
+
+        return new FigureFragment(
+            baseLocation with { Ordinal = ordinal },
+            altText,
+            caption);
+    }
+
     private static LinkFragment BuildLinkFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
     {
         var href = node.GetAttributeValue("href", string.Empty);
@@ -508,6 +901,12 @@ public static class HtmlFragmentParser
         var hasAccessibleName = text.Length > 0 || HasAriaLabel(node) || hasImageWithAlt;
 
         var titleAttribute = node.Attributes.Contains("title") ? node.GetAttributeValue("title", string.Empty) : null;
+        var target = node.Attributes.Contains("target") ? node.GetAttributeValue("target", string.Empty) : null;
+
+        var style = node.GetAttributeValue("style", string.Empty);
+        var hasExplicitColorStyle = !string.IsNullOrWhiteSpace(ExtractStyleProperty(style, "color"));
+        var textDecoration = ExtractStyleProperty(style, "text-decoration");
+        var removesUnderline = string.Equals(textDecoration, "none", StringComparison.OrdinalIgnoreCase);
 
         return new LinkFragment(
             baseLocation with { Ordinal = ordinal },
@@ -515,7 +914,25 @@ public static class HtmlFragmentParser
             text,
             isDocumentLink,
             hasAccessibleName,
-            titleAttribute);
+            titleAttribute,
+            target,
+            GetNearestLang(node),
+            hasExplicitColorStyle,
+            removesUnderline);
+    }
+
+    private static SkipLinkFragment? TryBuildSkipLinkFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var href = node.GetAttributeValue("href", string.Empty);
+        if (!href.StartsWith("#", StringComparison.Ordinal) || href.Length <= 1)
+        {
+            return null;
+        }
+
+        var targetId = href[1..];
+        var resolved = node.OwnerDocument.DocumentNode.SelectSingleNode($".//*[@id='{targetId}']") is not null;
+
+        return new SkipLinkFragment(baseLocation with { Ordinal = ordinal }, targetId, resolved);
     }
 
     private static HeadingFragment BuildHeadingFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
@@ -582,8 +999,23 @@ public static class HtmlFragmentParser
 
         // A nearby sibling link mentioning "transcript" is a heuristic signal, not proof - the
         // rule layer treats this as NeedsReview rather than a deterministic pass/fail.
-        var hasNearbyTranscriptLink = node.ParentNode?.SelectNodes(".//a") is { } links
-            && links.Any(a => (a.InnerText ?? string.Empty).Contains("transcript", StringComparison.OrdinalIgnoreCase));
+        var transcriptLink = node.ParentNode?.SelectNodes(".//a")
+            ?.FirstOrDefault(a => (a.InnerText ?? string.Empty).Contains("transcript", StringComparison.OrdinalIgnoreCase));
+        var hasNearbyTranscriptLink = transcriptLink is not null;
+
+        var hasSignLanguageTrack = tracks is { Count: > 0 }
+            && tracks.Any(t => string.Equals(t.GetAttributeValue("kind", string.Empty), "sign", StringComparison.OrdinalIgnoreCase)
+                || t.GetAttributeValue("label", string.Empty).Contains("sign language", StringComparison.OrdinalIgnoreCase));
+
+        var hasExtendedDescriptionTrack = tracks is { Count: > 0 }
+            && tracks.Any(t => string.Equals(t.GetAttributeValue("kind", string.Empty), "descriptions", StringComparison.OrdinalIgnoreCase)
+                && t.GetAttributeValue("label", string.Empty).Contains("extended", StringComparison.OrdinalIgnoreCase));
+
+        var flashIndicatorPattern = src.Contains("flash", StringComparison.OrdinalIgnoreCase)
+            || src.Contains("strobe", StringComparison.OrdinalIgnoreCase)
+            || src.Contains("flicker", StringComparison.OrdinalIgnoreCase)
+            || node.GetAttributeValue("class", string.Empty).Contains("flash", StringComparison.OrdinalIgnoreCase)
+            || node.GetAttributeValue("data-flash", string.Empty).Length > 0;
 
         var autoplay = node.Attributes.Contains("autoplay");
         var muted = node.Attributes.Contains("muted");
@@ -597,7 +1029,12 @@ public static class HtmlFragmentParser
             autoplay,
             muted,
             hasControls,
-            hasDescriptionTrack);
+            hasDescriptionTrack,
+            hasSignLanguageTrack,
+            hasExtendedDescriptionTrack,
+            transcriptLink?.GetAttributeValue("href", string.Empty),
+            transcriptLink is not null ? HtmlEntity.DeEntitize(transcriptLink.InnerText ?? string.Empty).Trim() : null,
+            flashIndicatorPattern);
     }
 
     private static FormFieldFragment BuildFormFieldFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
@@ -607,13 +1044,70 @@ public static class HtmlFragmentParser
             ? node.GetAttributeValue("autocomplete", string.Empty)
             : null;
 
+        var placeholder = node.Attributes.Contains("placeholder")
+            ? node.GetAttributeValue("placeholder", string.Empty)
+            : null;
+
+        var isRequired = node.Attributes.Contains("required")
+            || string.Equals(node.GetAttributeValue("aria-required", string.Empty), "true", StringComparison.OrdinalIgnoreCase);
+
+        var labelText = GetAssociatedLabelText(node);
+        var hasVisualRequiredIndicator = (labelText is not null && labelText.Contains('*'))
+            || (placeholder is not null && placeholder.Contains('*'));
+
+        var hasAriaDescribedBy = !string.IsNullOrWhiteSpace(node.GetAttributeValue("aria-describedby", string.Empty));
+
+        var isDisabled = node.Attributes.Contains("disabled");
+        var ariaDisabled = string.Equals(node.GetAttributeValue("aria-disabled", string.Empty), "true", StringComparison.OrdinalIgnoreCase);
+        var ariaInvalid = string.Equals(node.GetAttributeValue("aria-invalid", string.Empty), "true", StringComparison.OrdinalIgnoreCase);
+
+        var formatConstrainedInputTypes = new[] { "email", "tel", "url", "date", "time", "datetime-local", "month", "week", "number" };
+        var hasPatternOrFormatConstraint = node.Attributes.Contains("pattern")
+            || (inputType is not null && formatConstrainedInputTypes.Contains(inputType, StringComparer.OrdinalIgnoreCase));
+
+        string? firstOptionText = null;
+        var hasEmptyOptionText = false;
+        if (node.Name == "select")
+        {
+            var options = node.SelectNodes(".//option");
+            if (options is not null && options.Count > 0)
+            {
+                firstOptionText = HtmlEntity.DeEntitize(options[0].InnerText ?? string.Empty).Trim();
+                hasEmptyOptionText = options.Any(o => string.IsNullOrWhiteSpace(HtmlEntity.DeEntitize(o.InnerText ?? string.Empty)));
+            }
+        }
+
         return new FormFieldFragment(
             baseLocation with { Ordinal = ordinal },
             node.Name,
             inputType,
             HasAccessibleName(node),
             autocompleteToken,
-            InferPurposeCategory(node));
+            InferPurposeCategory(node),
+            labelText,
+            placeholder,
+            isRequired,
+            hasVisualRequiredIndicator,
+            hasAriaDescribedBy,
+            isDisabled,
+            ariaDisabled,
+            firstOptionText,
+            hasEmptyOptionText,
+            ariaInvalid,
+            hasPatternOrFormatConstraint);
+    }
+
+    private static string? GetAssociatedLabelText(HtmlNode node)
+    {
+        var id = node.GetAttributeValue("id", string.Empty);
+        if (string.IsNullOrEmpty(id))
+        {
+            return null;
+        }
+
+        var label = node.OwnerDocument.DocumentNode.SelectSingleNode($".//label[@for='{id}']");
+        var text = label is not null ? HtmlEntity.DeEntitize(label.InnerText ?? string.Empty).Trim() : null;
+        return string.IsNullOrWhiteSpace(text) ? null : text;
     }
 
     private static string? InferPurposeCategory(HtmlNode node)
@@ -788,6 +1282,50 @@ public static class HtmlFragmentParser
             GetNearestLang(node));
     }
 
+    private static LineBreakRunFragment? TryBuildLineBreakRunFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        if (!string.Equals(node.Name, "br", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        // Only report from the first <br> in a run, counting how many consecutive <br> siblings
+        // follow it (ignoring whitespace-only text nodes between them), so a run isn't reported once per element.
+        var previousSibling = node.PreviousSibling;
+        while (previousSibling is not null && previousSibling.NodeType == HtmlNodeType.Text && string.IsNullOrWhiteSpace(previousSibling.InnerText))
+        {
+            previousSibling = previousSibling.PreviousSibling;
+        }
+
+        if (previousSibling is not null && string.Equals(previousSibling.Name, "br", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var count = 1;
+        var current = node.NextSibling;
+        while (current is not null)
+        {
+            if (current.NodeType == HtmlNodeType.Text && string.IsNullOrWhiteSpace(current.InnerText))
+            {
+                current = current.NextSibling;
+                continue;
+            }
+
+            if (!string.Equals(current.Name, "br", StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            count++;
+            current = current.NextSibling;
+        }
+
+        return count < 2
+            ? null
+            : new LineBreakRunFragment(baseLocation with { Ordinal = ordinal }, count);
+    }
+
     private static string? GetNearestLang(HtmlNode node)
     {
         for (var current = node; current is not null; current = current.ParentNode)
@@ -830,6 +1368,136 @@ public static class HtmlFragmentParser
             role,
             roleIsUnknown,
             unknownAriaAttributeNames);
+    }
+
+    private static bool IsNativelyFocusable(HtmlNode node) =>
+        NativelyInteractiveTags.Contains(node.Name) || (node.Name == "a" && node.Attributes.Contains("href"));
+
+    private static AriaSemanticsFragment? TryBuildAriaSemanticsFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var role = node.Attributes.Contains("role") ? node.GetAttributeValue("role", string.Empty) : null;
+        var primaryRole = role?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+
+        string? missingRequiredOwnedElementDescription = null;
+        if (primaryRole is not null)
+        {
+            var match = RoleRequiredOwnedElements.FirstOrDefault(r => string.Equals(r.Role, primaryRole, StringComparison.OrdinalIgnoreCase));
+            if (match.Role is not null
+                && !node.Descendants().Any(d => string.Equals(d.GetAttributeValue("role", string.Empty), match.RequiredOwnedRole, StringComparison.OrdinalIgnoreCase)))
+            {
+                missingRequiredOwnedElementDescription = match.Description;
+            }
+        }
+
+        var missingRequiredAttributes = new List<string>();
+        if (primaryRole is not null)
+        {
+            var match = RoleRequiredAttributesTable.FirstOrDefault(r => string.Equals(r.Role, primaryRole, StringComparison.OrdinalIgnoreCase));
+            if (match.Role is not null)
+            {
+                missingRequiredAttributes.AddRange(match.RequiredAttributes.Where(attr => !node.Attributes.Contains(attr)));
+            }
+        }
+
+        var disallowedWidgetStateAttributes = new List<string>();
+        foreach (var (attribute, allowedRoles) in WidgetStateAttributeAllowedRoles)
+        {
+            if (!node.Attributes.Contains(attribute))
+            {
+                continue;
+            }
+
+            var effectiveRole = primaryRole ?? (ImplicitRoleByTag.TryGetValue(node.Name, out var implicitRole) ? implicitRole : null);
+            if (effectiveRole is null || !allowedRoles.Contains(effectiveRole, StringComparer.OrdinalIgnoreCase))
+            {
+                disallowedWidgetStateAttributes.Add(attribute);
+            }
+        }
+
+        var ariaHidden = string.Equals(node.GetAttributeValue("aria-hidden", string.Empty), "true", StringComparison.OrdinalIgnoreCase);
+        var isAriaHiddenWithFocusableDescendant = ariaHidden && node.Descendants().Any(IsNativelyFocusable);
+
+        var isFocusable = IsNativelyFocusable(node) || (node.Attributes.Contains("tabindex")
+            && int.TryParse(node.GetAttributeValue("tabindex", string.Empty), out var tabIndex) && tabIndex >= 0);
+
+        var hasGlobalAriaAttribute = node.Attributes
+            .Any(a => a.Name.StartsWith("aria-", StringComparison.OrdinalIgnoreCase) && KnownAriaAttributes.Contains(a.Name));
+
+        var isRedundantRole = primaryRole is not null
+            && ImplicitRoleByTag.TryGetValue(node.Name, out var nativeRole)
+            && string.Equals(primaryRole, nativeRole, StringComparison.OrdinalIgnoreCase);
+
+        var isNoteworthy = missingRequiredOwnedElementDescription is not null
+            || missingRequiredAttributes.Count > 0
+            || disallowedWidgetStateAttributes.Count > 0
+            || isAriaHiddenWithFocusableDescendant
+            || isRedundantRole
+            || (string.Equals(primaryRole, "presentation", StringComparison.OrdinalIgnoreCase) || string.Equals(primaryRole, "none", StringComparison.OrdinalIgnoreCase))
+               && (isFocusable || hasGlobalAriaAttribute);
+
+        if (!isNoteworthy)
+        {
+            return null;
+        }
+
+        return new AriaSemanticsFragment(
+            baseLocation with { Ordinal = ordinal },
+            node.Name,
+            role,
+            missingRequiredOwnedElementDescription,
+            missingRequiredAttributes,
+            disallowedWidgetStateAttributes,
+            isAriaHiddenWithFocusableDescendant,
+            isFocusable,
+            hasGlobalAriaAttribute,
+            isRedundantRole);
+    }
+
+    private static LandmarkFragment? TryBuildLandmarkFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var explicitRole = node.Attributes.Contains("role") ? node.GetAttributeValue("role", string.Empty) : null;
+        var isExplicitRole = !string.IsNullOrWhiteSpace(explicitRole) && LandmarkRoles.Contains(explicitRole);
+
+        string? effectiveRole = isExplicitRole
+            ? explicitRole
+            : (ImplicitRoleByTag.TryGetValue(node.Name, out var implicitRole) && LandmarkRoles.Contains(implicitRole) ? implicitRole : null);
+
+        if (effectiveRole is null)
+        {
+            return null;
+        }
+
+        var hasAccessibleName = node.Attributes.Contains("aria-label") || node.Attributes.Contains("aria-labelledby");
+
+        return new LandmarkFragment(
+            baseLocation with { Ordinal = ordinal },
+            node.Name,
+            effectiveRole,
+            isExplicitRole,
+            hasAccessibleName);
+    }
+
+    private static LiveRegionFragment? TryBuildLiveRegionFragment(HtmlNode node, SourceLocation baseLocation, int ordinal)
+    {
+        var ariaLiveValue = node.Attributes.Contains("aria-live") ? node.GetAttributeValue("aria-live", string.Empty) : null;
+        var role = node.Attributes.Contains("role") ? node.GetAttributeValue("role", string.Empty) : null;
+        var hasLiveRegionRole = role is not null && LiveRegionRoles.Contains(role);
+
+        if (ariaLiveValue is null && !hasLiveRegionRole)
+        {
+            return null;
+        }
+
+        var hasInvalidPolitenessValue = ariaLiveValue is not null && !ValidLivePolitenessValues.Contains(ariaLiveValue);
+        var textLength = HtmlEntity.DeEntitize(node.InnerText ?? string.Empty).Trim().Length;
+
+        return new LiveRegionFragment(
+            baseLocation with { Ordinal = ordinal },
+            node.Name,
+            role,
+            ariaLiveValue,
+            hasInvalidPolitenessValue,
+            textLength);
     }
 
     private static IEnumerable<AriaReferenceFragment> BuildAriaReferenceFragments(HtmlNode node, SourceLocation baseLocation, int startingOrdinal)
@@ -894,6 +1562,26 @@ public static class HtmlFragmentParser
                 baseLocation with { Ordinal = ordinal++ },
                 group.Key,
                 inputs.Count);
+        }
+    }
+
+    private static IEnumerable<DuplicateIdFragment> DetectDuplicateIds(HtmlDocument doc, SourceLocation baseLocation, int startingOrdinal)
+    {
+        var ordinal = startingOrdinal;
+
+        var duplicates = doc.DocumentNode.Descendants()
+            .Where(n => n.NodeType == HtmlNodeType.Element && n.Attributes.Contains("id"))
+            .Select(n => n.GetAttributeValue("id", string.Empty))
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .GroupBy(id => id, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1);
+
+        foreach (var group in duplicates)
+        {
+            yield return new DuplicateIdFragment(
+                baseLocation with { Ordinal = ordinal++ },
+                group.Key,
+                group.Count());
         }
     }
 }
