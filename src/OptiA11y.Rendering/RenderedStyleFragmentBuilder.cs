@@ -69,6 +69,46 @@ public static class RenderedStyleFragmentBuilder
                     location with { Ordinal = ordinal++ },
                     element.Description));
             }
+
+            if (element.HasClickHandlerWithoutKeyboardAccess)
+            {
+                fragments.Add(new KeyboardOperableFragment(location with { Ordinal = ordinal++ }, element.Description));
+            }
+
+            if (!string.IsNullOrWhiteSpace(element.VisibleLabelText) && !string.IsNullOrWhiteSpace(element.AccessibleName)
+                && !element.AccessibleName!.Contains(element.VisibleLabelText!, StringComparison.OrdinalIgnoreCase))
+            {
+                fragments.Add(new LabelInNameFragment(
+                    location with { Ordinal = ordinal++ },
+                    element.Description,
+                    element.VisibleLabelText!,
+                    element.AccessibleName!));
+            }
+
+            if (element.IsDraggableWithoutAlternative)
+            {
+                fragments.Add(new DraggingMovementsFragment(location with { Ordinal = ordinal++ }, element.Description));
+            }
+
+            if (element.RequiresMultipointOrPathGesture)
+            {
+                fragments.Add(new PointerGesturesFragment(location with { Ordinal = ordinal++ }, element.Description));
+            }
+
+            if (element.HasHoverOrFocusContentNotPersistent)
+            {
+                fragments.Add(new HoverFocusContentFragment(location with { Ordinal = ordinal++ }, element.Description));
+            }
+
+            if (element.HasInsufficientSpacingToNeighbor)
+            {
+                fragments.Add(new PointerTargetSpacingFragment(location with { Ordinal = ordinal++ }, element.Description));
+            }
+
+            if (element.IsObscuredWhenFocused)
+            {
+                fragments.Add(new FocusNotObscuredFragment(location with { Ordinal = ordinal++ }, element.Description));
+            }
         }
 
         foreach (var description in diagnostics.AnimatedElementDescriptions)
@@ -84,6 +124,67 @@ public static class RenderedStyleFragmentBuilder
         foreach (var sample in diagnostics.TextSpacingClippedSamples)
         {
             fragments.Add(new TextSpacingFragment(location with { Ordinal = ordinal++ }, Truncate(sample)));
+        }
+
+        if (diagnostics.HasKeyboardTrap)
+        {
+            fragments.Add(new KeyboardTrapFragment(location with { Ordinal = ordinal++ }));
+        }
+
+        if (diagnostics.FocusOrderDivergesFromVisualOrder)
+        {
+            fragments.Add(new FocusOrderFragment(location with { Ordinal = ordinal++ }));
+        }
+
+        foreach (var description in diagnostics.FocusAppearanceBelowThreshold ?? Array.Empty<string>())
+        {
+            fragments.Add(new FocusAppearanceFragment(location with { Ordinal = ordinal++ }, description));
+        }
+
+        if (diagnostics.OverflowsOrLosesContentUnderOrientationLock)
+        {
+            fragments.Add(new OrientationLockFragment(location with { Ordinal = ordinal++ }));
+        }
+
+        if (diagnostics.LosesContentAtTextZoom)
+        {
+            fragments.Add(new ResizeTextFragment(location with { Ordinal = ordinal++ }));
+        }
+
+        if (diagnostics.StickyElementsConsumeExcessiveViewport)
+        {
+            fragments.Add(new StickyObstructionFragment(location with { Ordinal = ordinal++ }));
+        }
+
+        if (diagnostics.HasThresholdExceedingFlash)
+        {
+            fragments.Add(new FlashThresholdFragment(location with { Ordinal = ordinal++ }));
+        }
+
+        foreach (var description in diagnostics.DynamicStatusContentWithoutLiveRegion ?? Array.Empty<string>())
+        {
+            fragments.Add(new StatusMessagesFragment(location with { Ordinal = ordinal++ }, description));
+        }
+
+        if (!diagnostics.HasBypassMechanism)
+        {
+            fragments.Add(new BypassBlocksFragment(location with { Ordinal = ordinal++ }));
+        }
+
+        if (!diagnostics.HasMainLandmark
+            || (diagnostics.ContentOutsideAnyLandmark?.Count ?? 0) > 0
+            || (diagnostics.DuplicateUnlabelledLandmarkDescriptions?.Count ?? 0) > 0)
+        {
+            fragments.Add(new LandmarkCompletenessFragment(
+                location with { Ordinal = ordinal++ },
+                diagnostics.HasMainLandmark,
+                diagnostics.ContentOutsideAnyLandmark ?? Array.Empty<string>(),
+                diagnostics.DuplicateUnlabelledLandmarkDescriptions ?? Array.Empty<string>()));
+        }
+
+        if (diagnostics.HeadingOrderDivergesFromVisualOrder)
+        {
+            fragments.Add(new HeadingInViewportOrderFragment(location with { Ordinal = ordinal++ }));
         }
 
         return fragments;

@@ -47,12 +47,21 @@ without touching the engine.
 | Rule ID | WCAG SC | Level | Confidence | What it checks |
 | --- | --- | --- | --- | --- |
 | `alt-text-quality` | 1.1.1 | A | Fail + NeedsReview | Missing `alt` is `Fail`; low-quality/placeholder alt text is `NeedsReview` |
+| `image-of-text` | 1.4.5 | AA | NeedsReview | Alt text that reads as a full sentence/heading, suggesting text baked into the image |
+| `decorative-image-misuse` | 1.1.1 | A | NeedsReview | A captioned figure whose image is nonetheless marked decorative (empty `alt`) |
+| `figure-caption-mismatch` | 1.1.1 | A | NeedsReview | A figure whose caption exactly duplicates its image's alt text |
+| `complex-image-description` | 1.1.1 | A | NeedsReview | A chart/graph/diagram-like image (by filename or alt) with only a short label for alt text |
 | `svg-accessible-name` | 1.1.1 | A | Fail | Inline SVG, image-map `<area>`, or `<object>`/`<embed>` with no accessible name and not `aria-hidden` |
 | `heading-structure` | 1.3.1 | A | Fail + NeedsReview | Skipped heading levels, empty headings, and multiple H1s are `Fail`; a missing H1 (may come from the template) and headings that read as body copy are `NeedsReview` |
 | `faux-heading` | 1.3.1 | A | NeedsReview | A short, fully-bold or enlarged paragraph outside any real heading element |
 | `link-purpose` | 2.4.4 | A | NeedsReview | Non-descriptive link text (e.g. "click here") |
+| `same-destination-different-text` | 2.4.4 | A | NeedsReview | The same URL linked to with several different visible link texts |
+| `new-window-link` | 3.2.5 | AAA | NeedsReview | A link with `target="_blank"` (or similar) whose text/title gives no warning it opens in a new window |
+| `adjacent-duplicate-links` | 2.4.4 | A | NeedsReview | An image-only link immediately adjacent to a text link pointing at the same destination |
+| `skip-link-target` | 2.4.1 | A | NeedsReview | An in-page anchor link (`href="#id"`) whose target id isn't found within the same property's markup |
 | `link-name` | 4.1.2 | A | Fail | Links with no accessible name at all (no text, aria-label, or alt on an inner image) |
 | `document-link-expectations` | 2.4.4 | A | NeedsReview | A link to a downloadable document (PDF, DOCX, etc.) whose text doesn't say so |
+| `meta-refresh` | 2.2.1 | A | Fail | A `<meta http-equiv="refresh">` tag in content markup, which auto-refreshes/redirects with no user control |
 | `table-headers` | 1.3.1 | A | Fail + NeedsReview | Missing header cells is `Fail`; missing caption is `NeedsReview` |
 | `table-complexity` | 1.3.1 | A | Fail | Merged cells (rowspan/colspan) without header `scope`, or rows with inconsistent cell counts |
 | `media-captions` | 1.2.2 | A | Fail + NeedsReview | Video without captions/transcript is `Fail`; audio-only is `NeedsReview` |
@@ -61,6 +70,14 @@ without touching the engine.
 | `form-labels` | 1.3.1 | A | Fail | Form controls with no accessible name (label/aria-label/aria-labelledby) |
 | `fieldset-legend` | 1.3.1 | A | Fail | `<fieldset>` with no `<legend>`, or a same-`name` radio/checkbox group with no wrapping fieldset |
 | `input-purpose` | 1.3.5 | AA | NeedsReview | A field that looks like it collects a common identity value (email, phone, etc.) with no `autocomplete` |
+| `placeholder-as-label` | 3.3.2 | A | Fail | A form field with no `<label>` whose only accessible name comes from its `placeholder` text |
+| `required-field-indication` | 3.3.2 | A | NeedsReview | A visually-marked-required field (e.g. an asterisk) with no `required`/`aria-required="true"` |
+| `error-identification` | 3.3.1 | A | NeedsReview | A field marked `aria-invalid="true"` with no `aria-describedby` pointing at an error message |
+| `form-instructions` | 3.3.2 | A | NeedsReview | A field with a format constraint (`pattern`, or an input type like email/tel/date) with no `aria-describedby` explaining it |
+| `select-option-quality` | 1.3.1 | A | NeedsReview | A `<select>` whose first option reads like a placeholder prompt, or which has options with no text |
+| `readonly-disabled-misuse` | 4.1.2 | A | NeedsReview | A field that is `disabled`/`aria-disabled` but also appears required |
+| `redundant-entry` | 3.3.7 | A | NeedsReview | A field that looks like it asks the user to re-enter data already provided (e.g. "confirm email") with no `autocomplete` |
+| `input-type-appropriateness` | 1.3.5 | AA | NeedsReview | An `<input type="text">` whose naming suggests a well-known purpose (email, phone) that should use the matching semantic input type |
 | `button-name` | 4.1.2 | A | Fail | Buttons/button-like inputs with no accessible name |
 | `title-attribute-misuse` | 4.1.2 | A | NeedsReview | A link/button whose `title` duplicates its visible text, or is its only accessible name |
 | `iframe-title` | 4.1.2 | A | Fail | Iframes with no `title`/aria-label |
@@ -70,6 +87,16 @@ without touching the engine.
 | `invalid-aria` | 4.1.2 | A | Fail | A `role` or `aria-*` attribute name that isn't part of the ARIA specification |
 | `broken-aria-reference` | 4.1.2 | A | NeedsReview | An `aria-labelledby`/`aria-describedby`/`for` reference that doesn't resolve within the same property |
 | `list-structure` | 1.3.1 | A | NeedsReview | Manually bulleted/numbered text that should be a real `<ul>`/`<ol>` |
+| `list-misuse` | 1.3.1 | A | Fail | An empty `<ul>`/`<ol>`, or a stray non-`<li>` element child directly inside one |
+| `definition-list-structure` | 1.3.1 | A | Fail | A `<dl>` with an orphaned `<dt>` (no following `<dd>`), or a `<dd>` appearing before any `<dt>` |
+| `layout-table` | 1.3.1 | A | NeedsReview | A `<table>` with no header row and no caption, suggesting it's being used for visual layout rather than tabular data |
+| `duplicate-id` | 4.1.1 | A | Fail | The same `id` attribute value used on more than one element within a property |
+| `blockquote-misuse` | 1.3.1 | A | NeedsReview | Short, non-quotation-like text wrapped in `<blockquote>`, or a `<blockquote>` with no citation |
+| `heading-length` | 2.4.6 | AA | NeedsReview | An unusually long heading, suggesting it's really body copy mis-tagged as a heading |
+| `label-quality` | 2.4.6 | AA | NeedsReview | A form label that's generic/placeholder-like (e.g. "Field 1") rather than descriptive |
+| `emphasis-misuse` | 1.3.1 | A | NeedsReview | A long run of text wrapped entirely in `<b>`/`<i>` rather than a semantic element or normal prose |
+| `superscript-subscript-misuse` | 1.3.1 | A | NeedsReview | A long passage wrapped in `<sup>`/`<sub>`, suggesting it's used for styling rather than true superscript/subscript content |
+| `meaningful-sequence` | 1.3.2 | A | NeedsReview | Text in an absolutely positioned or floated element, whose visual position may not match its reading-order sequence |
 | `language-attribute` | 3.1.1 | A | Fail | Missing or malformed `lang` attribute |
 | `language-of-parts` | 3.1.2 | AA | NeedsReview | A passage in a different writing system with no `lang` override marking it |
 | `sensory-characteristics` | 1.3.3 | A | NeedsReview | Instructions that rely on shape, position, or color alone (e.g. "the button on the right") |
@@ -82,6 +109,41 @@ without touching the engine.
 | `motion` *(rendered-style only)* | 2.2.2 | A | NeedsReview | An element with a CSS animation that repeats indefinitely and starts automatically |
 | `reflow` *(rendered-style only)* | 1.4.10 | AA | NeedsReview | The page requires horizontal scrolling at a 320px-equivalent viewport |
 | `text-spacing` *(rendered-style only)* | 1.4.12 | AA | Fail | Text that visually clips once the WCAG reference text-spacing overrides are applied |
+| `aria-required-children` | 1.3.1 | A | Fail | Roles with required owned elements (`list`, `tablist`, `menu`, etc.) missing them |
+| `aria-required-attributes` | 4.1.2 | A | Fail | Roles missing mandatory attributes (e.g. `checkbox` without `aria-checked`) |
+| `aria-allowed-attribute` | 4.1.2 | A | Fail | A widget-state ARIA attribute (`aria-checked`, `aria-selected`, `aria-expanded`, `aria-pressed`) applied to a role that does not support it |
+| `redundant-role` | 4.1.2 | A | NeedsReview | An explicit role duplicating the element's native implicit semantics |
+| `aria-hidden-focusable` | 4.1.2 | A | Fail | `aria-hidden="true"` containing a natively focusable descendant |
+| `presentation-role-conflict` | 1.3.1 | A | Fail | `role="presentation"`/`"none"` on a focusable element or one with a global ARIA attribute |
+| `landmark-structure` | 1.3.1 | A | NeedsReview | A landmark role embedded in content markup, or duplicate landmarks with no distinguishing accessible name |
+| `live-region-misuse` | 4.1.3 | AA | NeedsReview | An invalid `aria-live` politeness value, or live-region markup applied to content that looks static rather than dynamic |
+| `abbreviation-expansion` | 3.1.4 | AAA | NeedsReview | A repeated acronym (e.g. "API") with no nearby expansion or `<abbr title>` |
+| `unusual-words` | 3.1.3 | AAA | NeedsReview | Corporate jargon/idiom phrases (e.g. "move the needle") that may be unclear to some readers |
+| `pronunciation-ambiguity` | 3.1.6 | AAA | NeedsReview | A heteronym (e.g. "read", "wind", "close") whose pronunciation depends on meaning |
+| `unicode-styled-text` | 1.3.1 | A | Fail | Unicode "fancy font" characters (mathematical alphanumeric/fullwidth symbols) faking bold/italic styling |
+| `emoji-overuse` | 1.1.1 | A | NeedsReview | A run of 3+ consecutive emoji, or an emoji used as a list-marker-like prefix |
+| `ascii-art` | 1.1.1 | A | NeedsReview | A run of repeated punctuation used as a visual divider or ASCII art |
+| `whitespace-formatting` | 1.3.1 | A | NeedsReview | Repeated non-breaking spaces or long runs of regular spaces used to fake layout |
+| `line-break-misuse` | 1.3.1 | A | NeedsReview | Two or more consecutive `<br>` elements used to fake paragraph spacing |
+| `link-text-language` | 3.1.2 | AA | NeedsReview | Link text in a different writing system than the declared language, with no `lang` override |
+| `keyboard-trap` *(rendered-style only)* | 2.1.2 | A | Fail | Tab cycling that cannot escape a component |
+| `focus-order` *(rendered-style only)* | 2.4.3 | A | NeedsReview | DOM tab order diverging from visual layout order |
+| `focus-not-obscured` *(rendered-style only)* | 2.4.11 | AA | Fail | A focused element overlapped by sticky headers or footers |
+| `focus-appearance` *(rendered-style only)* | 2.4.13 | AAA | NeedsReview | A focus indicator below the AAA appearance threshold |
+| `keyboard-operable` *(rendered-style only)* | 2.1.1 | A | Fail | Click-handler elements not reachable or activatable by keyboard |
+| `hover-focus-content` *(rendered-style only)* | 1.4.13 | AA | NeedsReview | Hover/focus content that is not dismissible, hoverable, or persistent |
+| `orientation-lock` *(rendered-style only)* | 1.3.4 | AA | Fail | Layout that breaks or locks under a rotated viewport |
+| `resize-text` *(rendered-style only)* | 1.4.4 | AA | Fail | Content loss or clipping at 200% text zoom |
+| `sticky-obstruction` *(rendered-style only)* | 1.4.10 | AA | NeedsReview | Sticky elements consuming an excessive share of a small viewport |
+| `flash-threshold` *(rendered-style only)* | 2.3.1 | A | NeedsReview | Sampled luminance changes exceeding the general flash threshold |
+| `pointer-target-spacing` *(rendered-style only)* | 2.5.8 | AA | NeedsReview | Adjacent targets with insufficient spacing between them |
+| `pointer-gestures` *(rendered-style only)* | 2.5.1 | A | NeedsReview | Components requiring multipoint or path-based gestures |
+| `dragging-movements` *(rendered-style only)* | 2.5.7 | AA | NeedsReview | Drag-only interactions with no click alternative |
+| `label-in-name` *(rendered-style only)* | 2.5.3 | A | Fail | Visible label text not contained in the accessible name |
+| `status-messages` *(rendered-style only)* | 4.1.3 | AA | NeedsReview | Dynamically inserted status content with no live region |
+| `bypass-blocks` *(rendered-style only)* | 2.4.1 | A | Fail | No skip link, landmark, or heading route past repeated navigation |
+| `landmark-completeness` *(rendered-style only)* | 1.3.1 | A | NeedsReview | Missing `main`, content outside all landmarks, duplicate unlabelled landmarks |
+| `heading-in-viewport-order` *(rendered-style only)* | 1.3.2 | A | NeedsReview | Rendered heading order diverging from DOM heading order |
 
 Rows marked *(rendered-style only)* only ever produce findings when the optional
 [`OptiA11y.Rendering`](#rendered-style-enrichment-optional) slice is registered — otherwise their
@@ -111,10 +173,11 @@ heading, table, text, media, form field, button, iframe, deprecated element, int
 attributes, list structure, language attribute, color contrast, text style, non-text element
 (SVG/area/object/embed), ARIA attributes, ARIA reference, fieldset, radio group, emphasis block,
 page metadata, and the rendered-style-only target size/focus indicator/motion/reflow/text spacing
-fragments), each carrying a `SourceLocation` (content reference, property name, nested block
-path, ordinal) that identifies exactly where the finding came from — this is the foundation for
-deep-linking a finding back to the offending property, including inside nested blocks in a
-content area.
+fragments, plus the 18 further rendered-only fragments introduced for keyboard, focus, viewport,
+pointer, and landmark checks), each carrying a `SourceLocation` (content reference, property name,
+nested block path, ordinal) that identifies exactly where the finding came from — this is the
+foundation for deep-linking a finding back to the offending property, including inside nested
+blocks in a content area.
 
 `HtmlFragmentParser` (in `OptiA11y.Core.Parsing`) is the single, shared entry point that turns raw
 HTML into fragments for every adapter — PaaS, SaaS, and (via enrichment) rendered-style capture all
@@ -189,12 +252,21 @@ pwsh bin/Debug/net10.0/playwright.ps1 install chromium
 ```
 
 If the browser isn't installed, or no preview URL resolver is registered, rendering fails soft and
-the audit falls back to inline-style-only fragments (and the five rendered-only rules simply find
+the audit falls back to inline-style-only fragments (and the rendered-only rules simply find
 nothing to evaluate) — existing hosts see zero behavior change unless they explicitly opt in. See
 [`src/OptiA11y.Rendering/README.md`](https://github.com/adayinthelifeofapro/OptiA11y/blob/master/src/OptiA11y.Rendering/README.md) for the full design
 rationale and known limitations (best-effort text correlation, per-request browser latency,
 host-supplied preview URL resolution, and the target-size/motion exceptions the underlying success
 criteria carve out that this slice cannot fully verify).
+
+Beyond those original five, `OptiA11y.Rendering` also drives 18 further rendered-only rules —
+keyboard-trap detection (a real Tab-key walk), focus order/appearance/obstruction, orientation
+lock, 200%-zoom resize checks, sticky-element viewport consumption, flash-threshold timing,
+pointer target spacing/gestures/dragging, label-in-name, status messages, bypass blocks, landmark
+completeness, and heading-in-viewport-order. These share the same fail-soft behavior as the
+original five: with no rendering slice registered, they simply produce no findings. See
+[`docs/rule-backlog.md`](docs/rule-backlog.md#batch-9--rendered-only-rules) for the full list and
+the confidence rationale behind each one.
 
 ## Non-goals for v1
 

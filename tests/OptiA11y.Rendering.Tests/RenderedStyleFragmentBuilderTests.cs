@@ -194,4 +194,253 @@ public sealed class RenderedStyleFragmentBuilderTests
         var textSpacing = Assert.Single(fragments.OfType<TextSpacingFragment>());
         Assert.Equal("Sign up for our newsletter", textSpacing.SampleText);
     }
+
+    [Fact]
+    public void Build_KeyboardTrap_ProducesKeyboardTrapFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { HasKeyboardTrap = true };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<KeyboardTrapFragment>());
+    }
+
+    [Fact]
+    public void Build_FocusOrderDiverges_ProducesFocusOrderFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { FocusOrderDivergesFromVisualOrder = true };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<FocusOrderFragment>());
+    }
+
+    [Fact]
+    public void Build_FocusAppearanceBelowThreshold_ProducesFocusAppearanceFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            FocusAppearanceBelowThreshold = new[] { "<button> \"Submit\"" }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<FocusAppearanceFragment>());
+    }
+
+    [Fact]
+    public void Build_OrientationLockOverflow_ProducesOrientationLockFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { OverflowsOrLosesContentUnderOrientationLock = true };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<OrientationLockFragment>());
+    }
+
+    [Fact]
+    public void Build_LosesContentAtTextZoom_ProducesResizeTextFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { LosesContentAtTextZoom = true };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<ResizeTextFragment>());
+    }
+
+    [Fact]
+    public void Build_StickyElementsConsumeExcessiveViewport_ProducesStickyObstructionFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { StickyElementsConsumeExcessiveViewport = true };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<StickyObstructionFragment>());
+    }
+
+    [Fact]
+    public void Build_ThresholdExceedingFlash_ProducesFlashThresholdFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { HasThresholdExceedingFlash = true };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<FlashThresholdFragment>());
+    }
+
+    [Fact]
+    public void Build_DynamicStatusContentWithoutLiveRegion_ProducesStatusMessagesFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            DynamicStatusContentWithoutLiveRegion = new[] { "<div> \"Saved\"" }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<StatusMessagesFragment>());
+    }
+
+    [Fact]
+    public void Build_NoBypassMechanism_ProducesBypassBlocksFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { HasBypassMechanism = false };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<BypassBlocksFragment>());
+    }
+
+    [Fact]
+    public void Build_HasBypassMechanism_ProducesNoBypassBlocksFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { HasBypassMechanism = true };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Empty(fragments.OfType<BypassBlocksFragment>());
+    }
+
+    [Fact]
+    public void Build_MissingMainLandmark_ProducesLandmarkCompletenessFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { HasMainLandmark = false };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        var landmark = Assert.Single(fragments.OfType<LandmarkCompletenessFragment>());
+        Assert.False(landmark.HasMainLandmark);
+    }
+
+    [Fact]
+    public void Build_HeadingOrderDiverges_ProducesHeadingInViewportOrderFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with { HeadingOrderDivergesFromVisualOrder = true };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<HeadingInViewportOrderFragment>());
+    }
+
+    [Fact]
+    public void Build_ElementWithClickHandlerWithoutKeyboardAccess_ProducesKeyboardOperableFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            Elements = new[] { new RenderedElementDiagnostics("<div> \"Click me\"", 100, 40, true, HasClickHandlerWithoutKeyboardAccess: true) }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<KeyboardOperableFragment>());
+    }
+
+    [Fact]
+    public void Build_VisibleLabelNotInAccessibleName_ProducesLabelInNameFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            Elements = new[]
+            {
+                new RenderedElementDiagnostics(
+                    "<button> \"Search\"",
+                    100,
+                    40,
+                    true,
+                    VisibleLabelText: "Search",
+                    AccessibleName: "Go")
+            }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<LabelInNameFragment>());
+    }
+
+    [Fact]
+    public void Build_VisibleLabelContainedInAccessibleName_ProducesNoLabelInNameFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            Elements = new[]
+            {
+                new RenderedElementDiagnostics(
+                    "<button> \"Search\"",
+                    100,
+                    40,
+                    true,
+                    VisibleLabelText: "Search",
+                    AccessibleName: "Search the site")
+            }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Empty(fragments.OfType<LabelInNameFragment>());
+    }
+
+    [Fact]
+    public void Build_DraggableWithoutAlternative_ProducesDraggingMovementsFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            Elements = new[] { new RenderedElementDiagnostics("<div> \"Slider\"", 100, 40, true, IsDraggableWithoutAlternative: true) }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<DraggingMovementsFragment>());
+    }
+
+    [Fact]
+    public void Build_RequiresMultipointOrPathGesture_ProducesPointerGesturesFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            Elements = new[] { new RenderedElementDiagnostics("<div> \"Gallery\"", 100, 40, true, RequiresMultipointOrPathGesture: true) }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<PointerGesturesFragment>());
+    }
+
+    [Fact]
+    public void Build_HoverFocusContentNotPersistent_ProducesHoverFocusContentFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            Elements = new[] { new RenderedElementDiagnostics("<a> \"Info\"", 100, 40, true, HasHoverOrFocusContentNotPersistent: true) }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<HoverFocusContentFragment>());
+    }
+
+    [Fact]
+    public void Build_InsufficientSpacingToNeighbor_ProducesPointerTargetSpacingFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            Elements = new[] { new RenderedElementDiagnostics("<button> \"X\"", 18, 18, true, HasInsufficientSpacingToNeighbor: true) }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<PointerTargetSpacingFragment>());
+    }
+
+    [Fact]
+    public void Build_ObscuredWhenFocused_ProducesFocusNotObscuredFragment()
+    {
+        var diagnostics = RenderedPageDiagnostics.Empty with
+        {
+            Elements = new[] { new RenderedElementDiagnostics("<a> \"Menu\"", 100, 40, true, IsObscuredWhenFocused: true) }
+        };
+
+        var fragments = RenderedStyleFragmentBuilder.Build(diagnostics, Location);
+
+        Assert.Single(fragments.OfType<FocusNotObscuredFragment>());
+    }
 }
